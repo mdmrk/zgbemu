@@ -42,7 +42,7 @@ const OperandName = enum {
 const Operand = struct {
     name: OperandName,
     immediate: bool,
-    bytes: u8 = undefined,
+    bytes: u8 = 0,
 };
 
 const OpArgs = struct {
@@ -4090,13 +4090,24 @@ pc: u16,
 clock: Clock,
 fetch_data: u16,
 mem_dest: u16,
-is_mem_data: bool,
+reg_dest: OperandName,
 cur_op: Op,
 halted: bool,
 stepping: bool,
 
 inline fn two_u8_to_u16(data: []const u8) u16 {
     return @as(u16, @intCast(data[1])) << 8 | data[0];
+}
+
+inline fn u8_to_u16(value: u8) u16 {
+    return @as(u16, 0) | value;
+}
+
+fn ld(self: *Cpu) void {
+    switch (self.reg_dest) {
+        .A => self.regs.a.write(@as(u8, @intCast(self.fetch_data & 0xFF))),
+        else => unreachable,
+    }
 }
 
 fn jp(cpu: *Cpu) void {
@@ -4116,18 +4127,33 @@ fn decode_inst(self: *Cpu) void {
 
     for (self.cur_op.operands) |operand| {
         switch (operand.name) {
+            .A, .B, .C, .D, .E, .H, .L => {
+                self.reg_dest = operand.name;
+            },
+            .n8 => {
+                const value: u8 = self.bus.read(self.pc, operand.bytes)[0];
+                self.fetch_data = u8_to_u16(value);
+            },
+            .n16 => {
+                const value: u16 = two_u8_to_u16(self.bus.read(self.pc, operand.bytes));
+                self.fetch_data = value;
+            },
             .a16 => {
                 const address: u16 = two_u8_to_u16(self.bus.read(self.pc, operand.bytes));
                 self.mem_dest = address;
             },
             else => {},
         }
+        self.pc += operand.bytes;
     }
 }
 
 fn exe_inst(self: *Cpu) void {
     switch (self.cur_op.mnemonic) {
         .NOP => {},
+        .LD => {
+            ld(self);
+        },
         .JP => {
             jp(self);
         },
@@ -4163,7 +4189,7 @@ pub fn init(bus: *Bus) Cpu {
         .clock = Clock{},
         .fetch_data = 0,
         .mem_dest = 0,
-        .is_mem_data = false,
+        .reg_dest = undefined,
         .cur_op = undefined,
         .halted = false,
         .stepping = false,
