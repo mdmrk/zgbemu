@@ -8,8 +8,39 @@ const Clock = struct {
     t: u16 = 0,
 };
 
+const OperandName = enum {
+    @"$00",
+    @"$08",
+    @"$10",
+    @"$18",
+    @"$20",
+    @"$28",
+    @"$30",
+    @"$38",
+    A,
+    AF,
+    B,
+    BC,
+    C,
+    D,
+    DE,
+    E,
+    H,
+    HL,
+    L,
+    NC,
+    NZ,
+    SP,
+    Z,
+    a16,
+    a8,
+    e8,
+    n16,
+    n8,
+};
+
 const Operand = struct {
-    name: []const u8,
+    name: OperandName,
     immediate: bool,
     bytes: u8 = undefined,
 };
@@ -67,16 +98,6 @@ const OpMnemonic = enum {
     XOR,
 };
 
-inline fn join_u16(data: []const u8) u16 {
-    return @as(u16, @intCast(data[1])) << 8 | data[0];
-}
-
-fn jp(args: OpArgs) void {
-    const address = join_u16(args.data);
-    args.cpu.pc = address;
-    std.log.debug("jumping to 0x{x:0>4}", .{address});
-}
-
 const Op = struct {
     mnemonic: OpMnemonic,
     bytes: u8,
@@ -89,10 +110,9 @@ const Op = struct {
         h: u8,
         c: u8,
     },
-    callback: *const fn (args: OpArgs) void = undefined,
 };
 
-fn fetch_op(opcode: u8) Op {
+fn fetch_opcode(opcode: u8) Op {
     return switch (opcode) {
         0x00 => Op{
             .mnemonic = .NOP,
@@ -108,11 +128,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "BC",
+                    .name = .BC,
                     .immediate = true,
                 },
                 .{
-                    .name = "n16",
+                    .name = .n16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -126,11 +146,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "BC",
+                    .name = .BC,
                     .immediate = false,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -143,7 +163,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "BC",
+                    .name = .BC,
                     .immediate = true,
                 },
             },
@@ -156,7 +176,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -169,7 +189,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -182,11 +202,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -207,12 +227,12 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = false,
                 },
                 .{
-                    .name = "SP",
+                    .name = .SP,
                     .immediate = true,
                 },
             },
@@ -225,11 +245,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
                 .{
-                    .name = "BC",
+                    .name = .BC,
                     .immediate = true,
                 },
             },
@@ -242,11 +262,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "BC",
+                    .name = .BC,
                     .immediate = false,
                 },
             },
@@ -259,7 +279,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "BC",
+                    .name = .BC,
                     .immediate = true,
                 },
             },
@@ -272,7 +292,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -285,7 +305,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -298,11 +318,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -323,7 +343,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -337,11 +357,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "DE",
+                    .name = .DE,
                     .immediate = true,
                 },
                 .{
-                    .name = "n16",
+                    .name = .n16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -355,11 +375,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "DE",
+                    .name = .DE,
                     .immediate = false,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -372,7 +392,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "DE",
+                    .name = .DE,
                     .immediate = true,
                 },
             },
@@ -385,7 +405,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -398,7 +418,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -411,11 +431,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -436,7 +456,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "e8",
+                    .name = .e8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -450,11 +470,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
                 .{
-                    .name = "DE",
+                    .name = .DE,
                     .immediate = true,
                 },
             },
@@ -467,11 +487,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "DE",
+                    .name = .DE,
                     .immediate = false,
                 },
             },
@@ -484,7 +504,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "DE",
+                    .name = .DE,
                     .immediate = true,
                 },
             },
@@ -497,7 +517,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -510,7 +530,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -523,11 +543,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -548,11 +568,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "NZ",
+                    .name = .NZ,
                     .immediate = true,
                 },
                 .{
-                    .name = "e8",
+                    .name = .e8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -566,11 +586,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
                 .{
-                    .name = "n16",
+                    .name = .n16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -584,11 +604,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -601,7 +621,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
             },
@@ -614,7 +634,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -627,7 +647,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -640,11 +660,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -665,11 +685,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "Z",
+                    .name = .Z,
                     .immediate = true,
                 },
                 .{
-                    .name = "e8",
+                    .name = .e8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -683,11 +703,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
             },
@@ -700,11 +720,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -717,7 +737,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
             },
@@ -730,7 +750,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -743,7 +763,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -756,11 +776,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -781,11 +801,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "NC",
+                    .name = .NC,
                     .immediate = true,
                 },
                 .{
-                    .name = "e8",
+                    .name = .e8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -799,11 +819,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "SP",
+                    .name = .SP,
                     .immediate = true,
                 },
                 .{
-                    .name = "n16",
+                    .name = .n16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -817,11 +837,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -834,7 +854,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "SP",
+                    .name = .SP,
                     .immediate = true,
                 },
             },
@@ -847,7 +867,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -860,7 +880,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -873,11 +893,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -898,11 +918,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "e8",
+                    .name = .e8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -916,11 +936,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
                 .{
-                    .name = "SP",
+                    .name = .SP,
                     .immediate = true,
                 },
             },
@@ -933,11 +953,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -950,7 +970,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "SP",
+                    .name = .SP,
                     .immediate = true,
                 },
             },
@@ -963,7 +983,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -976,7 +996,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -989,11 +1009,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -1014,11 +1034,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -1031,11 +1051,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -1048,11 +1068,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -1065,11 +1085,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -1082,11 +1102,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -1099,11 +1119,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -1116,11 +1136,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -1133,11 +1153,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -1150,11 +1170,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -1167,11 +1187,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -1184,11 +1204,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -1201,11 +1221,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -1218,11 +1238,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -1235,11 +1255,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -1252,11 +1272,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -1269,11 +1289,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -1286,11 +1306,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -1303,11 +1323,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -1320,11 +1340,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -1337,11 +1357,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -1354,11 +1374,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -1371,11 +1391,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -1388,11 +1408,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -1405,11 +1425,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -1422,11 +1442,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -1439,11 +1459,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -1456,11 +1476,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -1473,11 +1493,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -1490,11 +1510,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -1507,11 +1527,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -1524,11 +1544,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -1541,11 +1561,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -1558,11 +1578,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -1575,11 +1595,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -1592,11 +1612,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -1609,11 +1629,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -1626,11 +1646,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -1643,11 +1663,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -1660,11 +1680,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -1677,11 +1697,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -1694,11 +1714,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -1711,11 +1731,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -1728,11 +1748,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -1745,11 +1765,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -1762,11 +1782,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -1779,11 +1799,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -1796,11 +1816,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -1813,11 +1833,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -1830,11 +1850,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -1847,11 +1867,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -1864,11 +1884,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -1881,11 +1901,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -1898,11 +1918,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -1915,11 +1935,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -1939,11 +1959,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -1956,11 +1976,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -1973,11 +1993,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -1990,11 +2010,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -2007,11 +2027,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -2024,11 +2044,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -2041,11 +2061,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -2058,11 +2078,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -2075,11 +2095,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -2092,11 +2112,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -2109,11 +2129,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -2126,11 +2146,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -2143,11 +2163,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -2160,11 +2180,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -2177,11 +2197,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -2194,11 +2214,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -2211,11 +2231,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -2228,11 +2248,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -2245,11 +2265,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -2262,11 +2282,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -2279,11 +2299,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -2296,11 +2316,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -2313,11 +2333,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -2330,11 +2350,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -2347,11 +2367,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -2364,11 +2384,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -2381,11 +2401,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -2398,11 +2418,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -2415,11 +2435,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -2432,11 +2452,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -2449,11 +2469,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -2466,11 +2486,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -2483,11 +2503,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -2500,11 +2520,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -2517,11 +2537,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -2534,11 +2554,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -2551,11 +2571,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -2568,11 +2588,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -2585,11 +2605,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -2602,11 +2622,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -2619,11 +2639,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -2636,11 +2656,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -2653,11 +2673,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -2670,11 +2690,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -2687,11 +2707,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -2704,11 +2724,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -2721,11 +2741,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -2738,11 +2758,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -2755,11 +2775,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -2772,11 +2792,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -2789,11 +2809,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -2806,11 +2826,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -2823,11 +2843,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -2840,11 +2860,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -2857,11 +2877,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -2874,11 +2894,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -2891,11 +2911,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -2908,11 +2928,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -2925,11 +2945,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -2942,11 +2962,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -2959,11 +2979,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -2976,11 +2996,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -2993,11 +3013,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -3010,11 +3030,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -3027,11 +3047,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -3044,11 +3064,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "B",
+                    .name = .B,
                     .immediate = true,
                 },
             },
@@ -3061,11 +3081,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -3078,11 +3098,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "D",
+                    .name = .D,
                     .immediate = true,
                 },
             },
@@ -3095,11 +3115,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "E",
+                    .name = .E,
                     .immediate = true,
                 },
             },
@@ -3112,11 +3132,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "H",
+                    .name = .H,
                     .immediate = true,
                 },
             },
@@ -3129,11 +3149,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "L",
+                    .name = .L,
                     .immediate = true,
                 },
             },
@@ -3146,11 +3166,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = false,
                 },
             },
@@ -3163,11 +3183,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -3180,7 +3200,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "NZ",
+                    .name = .NZ,
                     .immediate = true,
                 },
             },
@@ -3193,7 +3213,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "BC",
+                    .name = .BC,
                     .immediate = true,
                 },
             },
@@ -3206,11 +3226,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "NZ",
+                    .name = .NZ,
                     .immediate = true,
                 },
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -3224,13 +3244,12 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = true,
                 },
             },
             .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
-            .callback = jp,
         },
         0xC4 => Op{
             .mnemonic = .CALL,
@@ -3239,11 +3258,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "NZ",
+                    .name = .NZ,
                     .immediate = true,
                 },
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -3257,7 +3276,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "BC",
+                    .name = .BC,
                     .immediate = true,
                 },
             },
@@ -3270,11 +3289,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -3288,7 +3307,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "$00",
+                    .name = .@"$00",
                     .immediate = true,
                 },
             },
@@ -3301,7 +3320,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "Z",
+                    .name = .Z,
                     .immediate = true,
                 },
             },
@@ -3321,11 +3340,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "Z",
+                    .name = .Z,
                     .immediate = true,
                 },
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -3346,11 +3365,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "Z",
+                    .name = .Z,
                     .immediate = true,
                 },
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -3364,7 +3383,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -3378,11 +3397,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -3396,7 +3415,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "$08",
+                    .name = .@"$08",
                     .immediate = true,
                 },
             },
@@ -3409,7 +3428,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "NC",
+                    .name = .NC,
                     .immediate = true,
                 },
             },
@@ -3422,7 +3441,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "DE",
+                    .name = .DE,
                     .immediate = true,
                 },
             },
@@ -3435,11 +3454,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "NC",
+                    .name = .NC,
                     .immediate = true,
                 },
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -3460,11 +3479,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "NC",
+                    .name = .NC,
                     .immediate = true,
                 },
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -3478,7 +3497,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "DE",
+                    .name = .DE,
                     .immediate = true,
                 },
             },
@@ -3491,11 +3510,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -3509,7 +3528,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "$10",
+                    .name = .@"$10",
                     .immediate = true,
                 },
             },
@@ -3522,7 +3541,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
             },
@@ -3542,11 +3561,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -3567,11 +3586,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = true,
                 },
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = true,
                 },
@@ -3592,11 +3611,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -3610,7 +3629,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "$18",
+                    .name = .@"$18",
                     .immediate = true,
                 },
             },
@@ -3623,12 +3642,12 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "a8",
+                    .name = .a8,
                     .bytes = 1,
                     .immediate = false,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -3641,7 +3660,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
             },
@@ -3654,11 +3673,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = false,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -3685,7 +3704,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
             },
@@ -3698,11 +3717,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -3716,7 +3735,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "$20",
+                    .name = .@"$20",
                     .immediate = true,
                 },
             },
@@ -3729,11 +3748,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "SP",
+                    .name = .SP,
                     .immediate = true,
                 },
                 .{
-                    .name = "e8",
+                    .name = .e8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -3747,7 +3766,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
             },
@@ -3760,12 +3779,12 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = false,
                 },
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
             },
@@ -3799,11 +3818,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -3817,7 +3836,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "$28",
+                    .name = .@"$28",
                     .immediate = true,
                 },
             },
@@ -3830,11 +3849,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "a8",
+                    .name = .a8,
                     .bytes = 1,
                     .immediate = false,
                 },
@@ -3848,7 +3867,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "AF",
+                    .name = .AF,
                     .immediate = true,
                 },
             },
@@ -3861,11 +3880,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "C",
+                    .name = .C,
                     .immediate = false,
                 },
             },
@@ -3892,7 +3911,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "AF",
+                    .name = .AF,
                     .immediate = true,
                 },
             },
@@ -3905,11 +3924,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -3923,7 +3942,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "$30",
+                    .name = .@"$30",
                     .immediate = true,
                 },
             },
@@ -3936,15 +3955,15 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
                 .{
-                    .name = "SP",
+                    .name = .SP,
                     .immediate = true,
                 },
                 .{
-                    .name = "e8",
+                    .name = .e8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -3958,11 +3977,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "SP",
+                    .name = .SP,
                     .immediate = true,
                 },
                 .{
-                    .name = "HL",
+                    .name = .HL,
                     .immediate = true,
                 },
             },
@@ -3975,11 +3994,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = false,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "a16",
+                    .name = .a16,
                     .bytes = 2,
                     .immediate = false,
                 },
@@ -4014,11 +4033,11 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "A",
+                    .name = .A,
                     .immediate = true,
                 },
                 .{
-                    .name = "n8",
+                    .name = .n8,
                     .bytes = 1,
                     .immediate = true,
                 },
@@ -4032,7 +4051,7 @@ fn fetch_op(opcode: u8) Op {
             .immediate = true,
             .operands = &[_]Operand{
                 .{
-                    .name = "$38",
+                    .name = .@"$38",
                     .immediate = true,
                 },
             },
@@ -4065,38 +4084,71 @@ const Registers = struct {
 };
 
 bus: *Bus,
-registers: Registers,
-pc: u16,
+regs: Registers,
 sp: u16,
+pc: u16,
 clock: Clock,
 fetch_data: u16,
 mem_dest: u16,
-curr_opcode: u8,
+is_mem_data: bool,
+cur_op: Op,
 halted: bool,
 stepping: bool,
 
-pub fn step(self: *Cpu) !void {
-    const opcode: u8 = self.bus.read(self.pc, 1)[0];
-    const op = fetch_op(opcode);
+inline fn two_u8_to_u16(data: []const u8) u16 {
+    return @as(u16, @intCast(data[1])) << 8 | data[0];
+}
 
-    std.log.debug("pc: 0x{x:0>4}", .{self.pc});
-    std.log.debug("read 0x{x:0>2}: {s} (size: {})", .{ opcode, @tagName(op.mnemonic), op.bytes });
+fn jp(cpu: *Cpu) void {
+    cpu.pc = cpu.mem_dest;
+}
+
+fn fetch_inst(self: *Cpu) void {
+    const opcode: u8 = self.bus.read(self.pc, 1)[0];
     self.pc += 1;
-    if (op.bytes > 1) {
-        const data_size = op.bytes - 1;
-        const data = self.bus.read(self.pc, data_size);
-        self.pc += data_size;
-        if (op.callback != undefined) {
-            op.callback(.{ .data = data, .cpu = self });
+    std.log.debug("read 0x{X:0>2}", .{opcode});
+    const op = fetch_opcode(opcode);
+    self.cur_op = op;
+}
+
+fn decode_inst(self: *Cpu) void {
+    std.log.debug("op   {s} (size: {})", .{ @tagName(self.cur_op.mnemonic), self.cur_op.bytes });
+
+    for (self.cur_op.operands) |operand| {
+        switch (operand.name) {
+            .a16 => {
+                const address: u16 = two_u8_to_u16(self.bus.read(self.pc, operand.bytes));
+                self.mem_dest = address;
+            },
+            else => {},
         }
     }
+}
+
+fn exe_inst(self: *Cpu) void {
+    switch (self.cur_op.mnemonic) {
+        .NOP => {},
+        .JP => {
+            jp(self);
+        },
+        else => {
+            @panic("Not yet implemented");
+        },
+    }
+}
+
+pub fn step(self: *Cpu) !void {
+    std.log.debug("pc   0x{X:0>4}", .{self.pc});
+    self.fetch_inst();
+    self.decode_inst();
+    self.exe_inst();
     _ = try std.io.getStdIn().reader().readByte();
 }
 
 pub fn init(bus: *Bus) Cpu {
     return .{
         .bus = bus,
-        .registers = Registers{
+        .regs = Registers{
             .a = Register{},
             .f = Register{},
             .b = Register{},
@@ -4106,12 +4158,13 @@ pub fn init(bus: *Bus) Cpu {
             .h = Register{},
             .l = Register{},
         },
-        .pc = 0x100,
         .sp = 0,
+        .pc = 0x100,
         .clock = Clock{},
         .fetch_data = 0,
         .mem_dest = 0,
-        .curr_opcode = 0,
+        .is_mem_data = false,
+        .cur_op = undefined,
         .halted = false,
         .stepping = false,
     };
