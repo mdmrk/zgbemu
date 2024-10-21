@@ -10,7 +10,7 @@ const header_len: u16 = header_end_point - header_entry_point + 1;
 alloc: Allocator,
 filename: []const u8,
 header: CartridgeHeader,
-rom: []const u8,
+rom: []u8,
 
 const CartridgeHeader = struct {
     entry_point: [4]u8,

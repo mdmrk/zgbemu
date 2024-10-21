@@ -15,6 +15,6 @@ pub inline fn read(self: *Bus, address: u16, bytes: u8) []const u8 {
     return self.cartridge.read(address, bytes);
 }
 
-pub inline fn write(self: *Bus, address: u16, value: u8) u8 {
+pub inline fn write(self: *Bus, address: u16, value: u8) void {
     self.cartridge.write(address, value);
 }

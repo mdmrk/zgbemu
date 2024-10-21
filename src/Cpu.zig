@@ -45,11 +45,6 @@ const Operand = struct {
     bytes: u8 = 0,
 };
 
-const OpArgs = struct {
-    data: []const u8 = undefined,
-    cpu: *Cpu = undefined,
-};
-
 const OpMnemonic = enum {
     ADC,
     ADD,
@@ -4063,16 +4058,31 @@ fn fetch_opcode(opcode: u8) Op {
 const Register = struct {
     body: u8 = 0,
 
-    fn read(self: *Register) u8 {
+    inline fn read(self: *Register) u8 {
         return self.body;
     }
 
-    fn write(self: *Register, value: u8) void {
+    inline fn write(self: *Register, value: u8) void {
         self.body = value;
     }
 };
 
-const Registers = struct {
+const LongRegister = struct {
+    upper: *u8 = undefined,
+    lower: *u8 = undefined,
+
+    inline fn read(self: *LongRegister) u16 {
+        return @as(u16, @intCast(self.upper.*)) << 8 | self.lower.*;
+    }
+
+    inline fn write(self: *LongRegister, value: u16) void {
+        self.upper.* = value >> 8 & 0xFF;
+        self.lower.* = value & 0xFF;
+    }
+};
+
+bus: *Bus,
+regs: struct {
     a: Register,
     f: Register,
     b: Register,
@@ -4081,17 +4091,15 @@ const Registers = struct {
     e: Register,
     h: Register,
     l: Register,
-};
-
-bus: *Bus,
-regs: Registers,
-sp: u16,
-pc: u16,
+    af: LongRegister,
+    bc: LongRegister,
+    de: LongRegister,
+    hl: LongRegister,
+    sp: u16,
+    pc: u16,
+},
 clock: Clock,
-fetch_data: u16,
-mem_dest: u16,
-reg_dest: OperandName,
-cur_op: Op,
+cur_opcode: u8,
 halted: bool,
 stepping: bool,
 
@@ -4103,94 +4111,164 @@ inline fn u8_to_u16(value: u8) u16 {
     return @as(u16, 0) | value;
 }
 
-fn ld(self: *Cpu) void {
-    switch (self.reg_dest) {
-        .A => self.regs.a.write(@as(u8, @intCast(self.fetch_data & 0xFF))),
+inline fn map_operand_to_register(cpu: *Cpu, operand_name: *const OperandName) *Register {
+    return switch (operand_name.*) {
+        .A => &cpu.regs.a,
+        .B => &cpu.regs.b,
+        .C => &cpu.regs.c,
+        .D => &cpu.regs.d,
+        .E => &cpu.regs.e,
+        .H => &cpu.regs.h,
+        .L => &cpu.regs.l,
         else => unreachable,
-    }
+    };
 }
 
-fn jp(cpu: *Cpu) void {
-    cpu.pc = cpu.mem_dest;
+fn set_f_flags(self: *Cpu) void {
+    var result: u8 = 0;
+
+    const z: u8 = switch (self.cur_op.flags.z) {
+        '-', 0 => 0,
+        1 => 1,
+        else => 0,
+    };
+    const n: u8 = switch (self.cur_op.flags.n) {
+        '-', 0 => 0,
+        1 => 1,
+        else => unreachable,
+    };
+    const h: u8 = switch (self.cur_op.flags.h) {
+        '-', 0 => 0,
+        1 => 1,
+        else => unreachable,
+    };
+    const c: u8 = switch (self.cur_op.flags.c) {
+        '-', 0 => 0,
+        1 => 1,
+        else => unreachable,
+    };
+    result |= z << 4;
+    result |= n << 5;
+    result |= h << 6;
+    result |= c << 7;
+    self.regs.f.write(result);
+    std.log.debug("{b}", .{self.regs.f.read()});
 }
 
 fn fetch_inst(self: *Cpu) void {
-    const opcode: u8 = self.bus.read(self.pc, 1)[0];
-    self.pc += 1;
+    const opcode: u8 = self.bus.read(self.regs.pc, 1)[0];
+    self.regs.pc += 1;
     std.log.debug("read 0x{X:0>2}", .{opcode});
-    const op = fetch_opcode(opcode);
-    self.cur_op = op;
+    self.cur_opcode = opcode;
 }
 
-fn decode_inst(self: *Cpu) void {
-    std.log.debug("op   {s} (size: {})", .{ @tagName(self.cur_op.mnemonic), self.cur_op.bytes });
+fn exec_inst(self: *Cpu) void {
+    const opcode = self.cur_opcode;
+    const op = fetch_opcode(self.cur_opcode);
+    var data: []const u8 = undefined;
 
-    for (self.cur_op.operands) |operand| {
-        switch (operand.name) {
-            .A, .B, .C, .D, .E, .H, .L => {
-                self.reg_dest = operand.name;
-            },
-            .n8 => {
-                const value: u8 = self.bus.read(self.pc, operand.bytes)[0];
-                self.fetch_data = u8_to_u16(value);
-            },
-            .n16 => {
-                const value: u16 = two_u8_to_u16(self.bus.read(self.pc, operand.bytes));
-                self.fetch_data = value;
-            },
-            .a16 => {
-                const address: u16 = two_u8_to_u16(self.bus.read(self.pc, operand.bytes));
-                self.mem_dest = address;
-            },
-            else => {},
-        }
-        self.pc += operand.bytes;
+    if (op.bytes > 1) {
+        data = self.bus.read(self.regs.pc, op.bytes);
+        self.regs.pc += op.bytes - 1;
     }
-}
+    std.log.debug("op   {s} (size: {})", .{ @tagName(op.mnemonic), op.bytes });
 
-fn exe_inst(self: *Cpu) void {
-    switch (self.cur_op.mnemonic) {
+    switch (op.mnemonic) {
         .NOP => {},
-        .LD => {
-            ld(self);
+        .DI => {
+            self.halted = false;
         },
         .JP => {
-            jp(self);
+            if (self.cur_opcode == 0xC3) {
+                const address = two_u8_to_u16(data);
+                self.regs.pc = address;
+            }
         },
-        else => {
-            @panic("Not yet implemented");
+        .LD => {
+            switch (opcode) {
+                0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6F, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7F => {
+                    const reg_dst: *Register = map_operand_to_register(self, &op.operands[0].name);
+                    const reg_src: *Register = map_operand_to_register(self, &op.operands[1].name);
+                    reg_dst.write(reg_src.read());
+                },
+                0x36 => {
+                    const address = self.regs.hl.read();
+                    const value = data[0];
+                    self.bus.write(address, value);
+                },
+                0x0E, 0x1E, 0x2E, 0x3E, 0x06, 0x16, 0x26 => {
+                    const reg_dst: *Register = map_operand_to_register(self, &op.operands[0].name);
+                    const value = data[0];
+                    reg_dst.write(value);
+                },
+                else => unreachable,
+            }
         },
+        .LDH => {
+            switch (opcode) {
+                0xE0 => {
+                    const address: u16 = 0xFF00 + @as(u16, @intCast(data[0]));
+                    const reg_dst: *Register = &self.regs.a;
+                    self.bus.write(address, reg_dst.read());
+                },
+                else => unreachable,
+            }
+        },
+        .HALT => {
+            self.halted = true;
+        },
+        .XOR => {
+            switch (opcode) {
+                0xAF => {
+                    self.regs.a.write(self.regs.a.read() ^ self.regs.a.read());
+                    if (self.regs.a.read() == 0) {
+                        // TODO z to 0
+                    }
+                },
+                else => unreachable,
+            }
+        },
+        else => @panic("Op not implemented"),
     }
 }
 
 pub fn step(self: *Cpu) !void {
-    std.log.debug("pc   0x{X:0>4}", .{self.pc});
+    std.log.debug("pc   0x{X:0>4}", .{self.regs.pc});
     self.fetch_inst();
-    self.decode_inst();
-    self.exe_inst();
+    self.exec_inst();
     _ = try std.io.getStdIn().reader().readByte();
 }
 
 pub fn init(bus: *Bus) Cpu {
+    var a = Register{};
+    var f = Register{};
+    var b = Register{};
+    var c = Register{};
+    var d = Register{};
+    var e = Register{};
+    var h = Register{};
+    var l = Register{};
+
     return .{
         .bus = bus,
-        .regs = Registers{
-            .a = Register{},
-            .f = Register{},
-            .b = Register{},
-            .c = Register{},
-            .d = Register{},
-            .e = Register{},
-            .h = Register{},
-            .l = Register{},
+        .regs = .{
+            .a = a,
+            .f = f,
+            .b = b,
+            .c = c,
+            .d = d,
+            .e = e,
+            .h = h,
+            .l = l,
+            .af = LongRegister{ .upper = &a.body, .lower = &f.body },
+            .bc = LongRegister{ .upper = &b.body, .lower = &c.body },
+            .de = LongRegister{ .upper = &d.body, .lower = &e.body },
+            .hl = LongRegister{ .upper = &h.body, .lower = &l.body },
+            .sp = 0,
+            .pc = 0x100,
         },
-        .sp = 0,
-        .pc = 0x100,
         .clock = Clock{},
-        .fetch_data = 0,
-        .mem_dest = 0,
-        .reg_dest = undefined,
-        .cur_op = undefined,
+        .cur_opcode = undefined,
         .halted = false,
         .stepping = false,
     };
