@@ -32,6 +32,10 @@ pub fn main() !void {
     var cpu = Cpu.init(&bus);
 
     while (Context.running) {
+        std.log.debug("{s}", .{&[_]u8{'='} ** 20});
         try cpu.step();
+        cpu.print();
+        std.log.debug("{s}\n", .{&[_]u8{'='} ** 20});
+        _ = try std.io.getStdIn().reader().readByte();
     }
 }

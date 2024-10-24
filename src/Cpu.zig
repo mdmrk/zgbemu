@@ -4076,8 +4076,8 @@ const LongRegister = struct {
     }
 
     inline fn write(self: *LongRegister, value: u16) void {
-        self.upper.* = value >> 8 & 0xFF;
-        self.lower.* = value & 0xFF;
+        self.upper.* = @as(u8, @intCast(value >> 8)) & 0xFF;
+        self.lower.* = @as(u8, @intCast(value & 0xFF));
     }
 };
 
@@ -4124,35 +4124,28 @@ inline fn map_operand_to_register(cpu: *Cpu, operand_name: *const OperandName) *
     };
 }
 
-fn set_f_flags(self: *Cpu) void {
-    var result: u8 = 0;
+fn set_f_flags(self: *Cpu, flags: struct {
+    z: u8 = undefined,
+    n: u8 = undefined,
+    h: u8 = undefined,
+    c: u8 = undefined,
+}) void {
+    var result: u8 = self.regs.f.read();
 
-    const z: u8 = switch (self.cur_op.flags.z) {
-        '-', 0 => 0,
-        1 => 1,
-        else => 0,
-    };
-    const n: u8 = switch (self.cur_op.flags.n) {
-        '-', 0 => 0,
-        1 => 1,
-        else => unreachable,
-    };
-    const h: u8 = switch (self.cur_op.flags.h) {
-        '-', 0 => 0,
-        1 => 1,
-        else => unreachable,
-    };
-    const c: u8 = switch (self.cur_op.flags.c) {
-        '-', 0 => 0,
-        1 => 1,
-        else => unreachable,
-    };
-    result |= z << 4;
-    result |= n << 5;
-    result |= h << 6;
-    result |= c << 7;
+    if (flags.z != undefined) {
+        result ^= flags.z << 4;
+    }
+    if (flags.n != undefined) {
+        result ^= flags.n << 5;
+    }
+    if (flags.h != undefined) {
+        result ^= flags.h << 6;
+    }
+    if (flags.c != undefined) {
+        result ^= flags.c << 7;
+    }
     self.regs.f.write(result);
-    std.log.debug("{b}", .{self.regs.f.read()});
+    std.log.debug("{b:0>8}b", .{self.regs.f.read()});
 }
 
 fn fetch_inst(self: *Cpu) void {
@@ -4165,23 +4158,71 @@ fn fetch_inst(self: *Cpu) void {
 fn exec_inst(self: *Cpu) void {
     const opcode = self.cur_opcode;
     const op = fetch_opcode(self.cur_opcode);
-    var data: []const u8 = undefined;
+    const operands_size: u8 = op.bytes - 1;
+    var operands: []const u8 = undefined;
+    var z: u8 = undefined;
+    var n: u8 = undefined;
+    var h: u8 = undefined;
+    var c: u8 = undefined;
 
-    if (op.bytes > 1) {
-        data = self.bus.read(self.regs.pc, op.bytes);
-        self.regs.pc += op.bytes - 1;
+    if (operands_size > 0) {
+        operands = self.bus.read(self.regs.pc, operands_size);
+        self.regs.pc += operands_size;
     }
     std.log.debug("op   {s} (size: {})", .{ @tagName(op.mnemonic), op.bytes });
 
     switch (op.mnemonic) {
         .NOP => {},
+        .CALL => {
+            const address = two_u8_to_u16(operands);
+            switch (opcode) {
+                0o315 => {
+                    // CALL n16
+                    self.regs.sp = self.regs.pc - op.bytes;
+                    self.regs.pc = address;
+                },
+                else => {
+                    // CALL cc, n16
+                    const condition_met: bool = switch (opcode >> 3) {
+                        0o30 => self.regs.f.read() >> 4 & 1 == 0,
+                        0o31 => self.regs.f.read() >> 5 & 1 == 1,
+                        0o32 => self.regs.f.read() >> 6 & 1 == 0,
+                        0o33 => self.regs.f.read() >> 7 & 1 == 1,
+                        else => unreachable,
+                    };
+                    if (condition_met) {
+                        self.regs.sp = self.regs.pc - op.bytes;
+                        self.regs.pc = address;
+                    }
+                },
+            }
+        },
+        .CP => {
+            const reg_dst: *Register = map_operand_to_register(self, &op.operands[0].name);
+            const value: u8 = switch (opcode) {
+                0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBF => map_operand_to_register(self, &op.operands[1].name).read(),
+                0xBE => self.bus.read(self.regs.hl.read(), 1)[0],
+                0xFE => operands[0],
+                else => unreachable,
+            };
+            const result = reg_dst.read() + value;
+            if (result == 0) {
+                z = 1;
+            }
+            n = 1;
+            h = if (result >> 4 & 1 == 1) 1 else 0;
+            c = if (result >> 4 & 1 == 1) 1 else 0;
+        },
         .DI => {
             self.halted = false;
         },
         .JP => {
-            if (self.cur_opcode == 0xC3) {
-                const address = two_u8_to_u16(data);
-                self.regs.pc = address;
+            switch (opcode) {
+                0xC3 => {
+                    const address = two_u8_to_u16(operands);
+                    self.regs.pc = address;
+                },
+                else => unreachable,
             }
         },
         .LD => {
@@ -4191,14 +4232,34 @@ fn exec_inst(self: *Cpu) void {
                     const reg_src: *Register = map_operand_to_register(self, &op.operands[1].name);
                     reg_dst.write(reg_src.read());
                 },
+                0x01 => {
+                    const value = two_u8_to_u16(operands);
+                    self.regs.bc.write(value);
+                },
+                0x11 => {
+                    const value = two_u8_to_u16(operands);
+                    self.regs.de.write(value);
+                },
+                0x21 => {
+                    const value = two_u8_to_u16(operands);
+                    self.regs.hl.write(value);
+                },
+                0x31 => {
+                    const value = two_u8_to_u16(operands);
+                    self.regs.sp = value;
+                },
                 0x36 => {
                     const address = self.regs.hl.read();
-                    const value = data[0];
+                    const value = operands[0];
                     self.bus.write(address, value);
+                },
+                0xEA => {
+                    const address = two_u8_to_u16(operands);
+                    self.bus.write(address, self.regs.a.read());
                 },
                 0x0E, 0x1E, 0x2E, 0x3E, 0x06, 0x16, 0x26 => {
                     const reg_dst: *Register = map_operand_to_register(self, &op.operands[0].name);
-                    const value = data[0];
+                    const value = operands[0];
                     reg_dst.write(value);
                 },
                 else => unreachable,
@@ -4207,9 +4268,15 @@ fn exec_inst(self: *Cpu) void {
         .LDH => {
             switch (opcode) {
                 0xE0 => {
-                    const address: u16 = 0xFF00 + @as(u16, @intCast(data[0]));
+                    const address: u16 = 0xFF00 + @as(u16, @intCast(operands[0]));
+                    const reg_src: *Register = &self.regs.a;
+                    self.bus.write(address, reg_src.read());
+                },
+                0xF0 => {
+                    const address: u16 = 0xFF00 + @as(u16, @intCast(operands[0]));
                     const reg_dst: *Register = &self.regs.a;
-                    self.bus.write(address, reg_dst.read());
+                    const value = self.bus.read(address, 1)[0];
+                    reg_dst.write(value);
                 },
                 else => unreachable,
             }
@@ -4222,7 +4289,7 @@ fn exec_inst(self: *Cpu) void {
                 0xAF => {
                     self.regs.a.write(self.regs.a.read() ^ self.regs.a.read());
                     if (self.regs.a.read() == 0) {
-                        // TODO z to 0
+                        z = 0;
                     }
                 },
                 else => unreachable,
@@ -4230,13 +4297,52 @@ fn exec_inst(self: *Cpu) void {
         },
         else => @panic("Op not implemented"),
     }
+    set_f_flags(self, .{
+        .z = z,
+        .n = n,
+        .h = h,
+        .c = c,
+    });
 }
 
 pub fn step(self: *Cpu) !void {
-    std.log.debug("pc   0x{X:0>4}", .{self.regs.pc});
     self.fetch_inst();
     self.exec_inst();
-    _ = try std.io.getStdIn().reader().readByte();
+}
+
+pub inline fn print(self: *Cpu) void {
+    std.log.debug(
+        \\registers
+        \\       a  = {}
+        \\       f  = {}
+        \\       b  = {}
+        \\       c  = {}
+        \\       d  = {}
+        \\       e  = {}
+        \\       h  = {}
+        \\       l  = {}
+        \\       ap = {} 
+        \\       bc = {} 
+        \\       de = {} 
+        \\       hl = {} 
+        \\       sp = 0x{X:0>4} 
+        \\       pc = 0x{X:0>4} 
+    , .{
+        self.regs.a.read(),
+        self.regs.f.read(),
+        self.regs.b.read(),
+        self.regs.c.read(),
+        self.regs.d.read(),
+        self.regs.e.read(),
+        self.regs.h.read(),
+        self.regs.l.read(),
+        self.regs.af.read(),
+        self.regs.bc.read(),
+        self.regs.de.read(),
+        self.regs.hl.read(),
+        self.regs.sp,
+        self.regs.pc,
+    });
 }
 
 pub fn init(bus: *Bus) Cpu {
