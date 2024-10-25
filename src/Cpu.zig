@@ -8,6 +8,18 @@ const Clock = struct {
     t: u16 = 0,
 };
 
+const Flags = struct {
+    const ZERO_FLAG_BYTE_POSITION: u8 = 7;
+    const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;
+    const HALF_CARRY_FLAG_BYTE_POSITION: u8 = 5;
+    const CARRY_FLAG_BYTE_POSITION: u8 = 4;
+
+    zero: bool,
+    subtract: bool,
+    half_carry: bool,
+    carry: bool,
+};
+
 const OperandName = enum {
     @"$00",
     @"$08",
@@ -99,12 +111,6 @@ const Op = struct {
     cycles: []const u8,
     operands: []const Operand = &[_]Operand{},
     immediate: bool,
-    flags: struct {
-        z: u8,
-        n: u8,
-        h: u8,
-        c: u8,
-    },
 };
 
 fn fetch_opcode(opcode: u8) Op {
@@ -114,7 +120,6 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x01 => Op{
             .mnemonic = .LD,
@@ -132,7 +137,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x02 => Op{
             .mnemonic = .LD,
@@ -149,7 +153,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x03 => Op{
             .mnemonic = .INC,
@@ -162,7 +165,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x04 => Op{
             .mnemonic = .INC,
@@ -175,7 +177,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = '-' },
         },
         0x05 => Op{
             .mnemonic = .DEC,
@@ -188,7 +189,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = '-' },
         },
         0x06 => Op{
             .mnemonic = .LD,
@@ -206,14 +206,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x07 => Op{
             .mnemonic = .RLCA,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '0', .n = '0', .h = '0', .c = 'c' },
         },
         0x08 => Op{
             .mnemonic = .LD,
@@ -231,7 +229,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x09 => Op{
             .mnemonic = .ADD,
@@ -248,7 +245,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '0', .h = 'h', .c = 'c' },
         },
         0x0A => Op{
             .mnemonic = .LD,
@@ -265,7 +261,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x0B => Op{
             .mnemonic = .DEC,
@@ -278,7 +273,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x0C => Op{
             .mnemonic = .INC,
@@ -291,7 +285,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = '-' },
         },
         0x0D => Op{
             .mnemonic = .DEC,
@@ -304,7 +297,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = '-' },
         },
         0x0E => Op{
             .mnemonic = .LD,
@@ -322,14 +314,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x0F => Op{
             .mnemonic = .RRCA,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '0', .n = '0', .h = '0', .c = 'c' },
         },
         0x10 => Op{
             .mnemonic = .STOP,
@@ -343,7 +333,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x11 => Op{
             .mnemonic = .LD,
@@ -361,7 +350,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x12 => Op{
             .mnemonic = .LD,
@@ -378,7 +366,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x13 => Op{
             .mnemonic = .INC,
@@ -391,7 +378,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x14 => Op{
             .mnemonic = .INC,
@@ -404,7 +390,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = '-' },
         },
         0x15 => Op{
             .mnemonic = .DEC,
@@ -417,7 +402,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = '-' },
         },
         0x16 => Op{
             .mnemonic = .LD,
@@ -435,14 +419,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x17 => Op{
             .mnemonic = .RLA,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '0', .n = '0', .h = '0', .c = 'c' },
         },
         0x18 => Op{
             .mnemonic = .JR,
@@ -456,7 +438,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x19 => Op{
             .mnemonic = .ADD,
@@ -473,7 +454,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '0', .h = 'h', .c = 'c' },
         },
         0x1A => Op{
             .mnemonic = .LD,
@@ -490,7 +470,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x1B => Op{
             .mnemonic = .DEC,
@@ -503,7 +482,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x1C => Op{
             .mnemonic = .INC,
@@ -516,7 +494,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = '-' },
         },
         0x1D => Op{
             .mnemonic = .DEC,
@@ -529,7 +506,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = '-' },
         },
         0x1E => Op{
             .mnemonic = .LD,
@@ -547,14 +523,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x1F => Op{
             .mnemonic = .RRA,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '0', .n = '0', .h = '0', .c = 'c' },
         },
         0x20 => Op{
             .mnemonic = .JR,
@@ -572,7 +546,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x21 => Op{
             .mnemonic = .LD,
@@ -590,7 +563,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x22 => Op{
             .mnemonic = .LD,
@@ -607,7 +579,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x23 => Op{
             .mnemonic = .INC,
@@ -620,7 +591,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x24 => Op{
             .mnemonic = .INC,
@@ -633,7 +603,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = '-' },
         },
         0x25 => Op{
             .mnemonic = .DEC,
@@ -646,7 +615,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = '-' },
         },
         0x26 => Op{
             .mnemonic = .LD,
@@ -664,14 +632,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x27 => Op{
             .mnemonic = .DAA,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = 'z', .n = '-', .h = '0', .c = 'c' },
         },
         0x28 => Op{
             .mnemonic = .JR,
@@ -689,7 +655,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x29 => Op{
             .mnemonic = .ADD,
@@ -706,7 +671,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '0', .h = 'h', .c = 'c' },
         },
         0x2A => Op{
             .mnemonic = .LD,
@@ -723,7 +687,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x2B => Op{
             .mnemonic = .DEC,
@@ -736,7 +699,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x2C => Op{
             .mnemonic = .INC,
@@ -749,7 +711,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = '-' },
         },
         0x2D => Op{
             .mnemonic = .DEC,
@@ -762,7 +723,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = '-' },
         },
         0x2E => Op{
             .mnemonic = .LD,
@@ -780,14 +740,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x2F => Op{
             .mnemonic = .CPL,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '1', .h = '1', .c = '-' },
         },
         0x30 => Op{
             .mnemonic = .JR,
@@ -805,7 +763,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x31 => Op{
             .mnemonic = .LD,
@@ -823,7 +780,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x32 => Op{
             .mnemonic = .LD,
@@ -840,7 +796,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x33 => Op{
             .mnemonic = .INC,
@@ -853,7 +808,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x34 => Op{
             .mnemonic = .INC,
@@ -866,7 +820,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = '-' },
         },
         0x35 => Op{
             .mnemonic = .DEC,
@@ -879,7 +832,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = '-' },
         },
         0x36 => Op{
             .mnemonic = .LD,
@@ -897,14 +849,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x37 => Op{
             .mnemonic = .SCF,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '0', .h = '0', .c = '1' },
         },
         0x38 => Op{
             .mnemonic = .JR,
@@ -922,7 +872,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x39 => Op{
             .mnemonic = .ADD,
@@ -939,7 +888,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '0', .h = 'h', .c = 'c' },
         },
         0x3A => Op{
             .mnemonic = .LD,
@@ -956,7 +904,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x3B => Op{
             .mnemonic = .DEC,
@@ -969,7 +916,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x3C => Op{
             .mnemonic = .INC,
@@ -982,7 +928,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = '-' },
         },
         0x3D => Op{
             .mnemonic = .DEC,
@@ -995,7 +940,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = '-' },
         },
         0x3E => Op{
             .mnemonic = .LD,
@@ -1013,14 +957,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x3F => Op{
             .mnemonic = .CCF,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '0', .h = '0', .c = 'c' },
         },
         0x40 => Op{
             .mnemonic = .LD,
@@ -1037,7 +979,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x41 => Op{
             .mnemonic = .LD,
@@ -1054,7 +995,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x42 => Op{
             .mnemonic = .LD,
@@ -1071,7 +1011,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x43 => Op{
             .mnemonic = .LD,
@@ -1088,7 +1027,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x44 => Op{
             .mnemonic = .LD,
@@ -1105,7 +1043,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x45 => Op{
             .mnemonic = .LD,
@@ -1122,7 +1059,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x46 => Op{
             .mnemonic = .LD,
@@ -1139,7 +1075,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x47 => Op{
             .mnemonic = .LD,
@@ -1156,7 +1091,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x48 => Op{
             .mnemonic = .LD,
@@ -1173,7 +1107,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x49 => Op{
             .mnemonic = .LD,
@@ -1190,7 +1123,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x4A => Op{
             .mnemonic = .LD,
@@ -1207,7 +1139,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x4B => Op{
             .mnemonic = .LD,
@@ -1224,7 +1155,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x4C => Op{
             .mnemonic = .LD,
@@ -1241,7 +1171,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x4D => Op{
             .mnemonic = .LD,
@@ -1258,7 +1187,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x4E => Op{
             .mnemonic = .LD,
@@ -1275,7 +1203,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x4F => Op{
             .mnemonic = .LD,
@@ -1292,7 +1219,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x50 => Op{
             .mnemonic = .LD,
@@ -1309,7 +1235,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x51 => Op{
             .mnemonic = .LD,
@@ -1326,7 +1251,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x52 => Op{
             .mnemonic = .LD,
@@ -1343,7 +1267,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x53 => Op{
             .mnemonic = .LD,
@@ -1360,7 +1283,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x54 => Op{
             .mnemonic = .LD,
@@ -1377,7 +1299,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x55 => Op{
             .mnemonic = .LD,
@@ -1394,7 +1315,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x56 => Op{
             .mnemonic = .LD,
@@ -1411,7 +1331,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x57 => Op{
             .mnemonic = .LD,
@@ -1428,7 +1347,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x58 => Op{
             .mnemonic = .LD,
@@ -1445,7 +1363,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x59 => Op{
             .mnemonic = .LD,
@@ -1462,7 +1379,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x5A => Op{
             .mnemonic = .LD,
@@ -1479,7 +1395,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x5B => Op{
             .mnemonic = .LD,
@@ -1496,7 +1411,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x5C => Op{
             .mnemonic = .LD,
@@ -1513,7 +1427,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x5D => Op{
             .mnemonic = .LD,
@@ -1530,7 +1443,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x5E => Op{
             .mnemonic = .LD,
@@ -1547,7 +1459,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x5F => Op{
             .mnemonic = .LD,
@@ -1564,7 +1475,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x60 => Op{
             .mnemonic = .LD,
@@ -1581,7 +1491,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x61 => Op{
             .mnemonic = .LD,
@@ -1598,7 +1507,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x62 => Op{
             .mnemonic = .LD,
@@ -1615,7 +1523,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x63 => Op{
             .mnemonic = .LD,
@@ -1632,7 +1539,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x64 => Op{
             .mnemonic = .LD,
@@ -1649,7 +1555,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x65 => Op{
             .mnemonic = .LD,
@@ -1666,7 +1571,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x66 => Op{
             .mnemonic = .LD,
@@ -1683,7 +1587,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x67 => Op{
             .mnemonic = .LD,
@@ -1700,7 +1603,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x68 => Op{
             .mnemonic = .LD,
@@ -1717,7 +1619,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x69 => Op{
             .mnemonic = .LD,
@@ -1734,7 +1635,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x6A => Op{
             .mnemonic = .LD,
@@ -1751,7 +1651,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x6B => Op{
             .mnemonic = .LD,
@@ -1768,7 +1667,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x6C => Op{
             .mnemonic = .LD,
@@ -1785,7 +1683,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x6D => Op{
             .mnemonic = .LD,
@@ -1802,7 +1699,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x6E => Op{
             .mnemonic = .LD,
@@ -1819,7 +1715,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x6F => Op{
             .mnemonic = .LD,
@@ -1836,7 +1731,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x70 => Op{
             .mnemonic = .LD,
@@ -1853,7 +1747,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x71 => Op{
             .mnemonic = .LD,
@@ -1870,7 +1763,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x72 => Op{
             .mnemonic = .LD,
@@ -1887,7 +1779,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x73 => Op{
             .mnemonic = .LD,
@@ -1904,7 +1795,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x74 => Op{
             .mnemonic = .LD,
@@ -1921,7 +1811,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x75 => Op{
             .mnemonic = .LD,
@@ -1938,14 +1827,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x76 => Op{
             .mnemonic = .HALT,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x77 => Op{
             .mnemonic = .LD,
@@ -1962,7 +1849,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x78 => Op{
             .mnemonic = .LD,
@@ -1979,7 +1865,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x79 => Op{
             .mnemonic = .LD,
@@ -1996,7 +1881,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x7A => Op{
             .mnemonic = .LD,
@@ -2013,7 +1897,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x7B => Op{
             .mnemonic = .LD,
@@ -2030,7 +1913,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x7C => Op{
             .mnemonic = .LD,
@@ -2047,7 +1929,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x7D => Op{
             .mnemonic = .LD,
@@ -2064,7 +1945,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x7E => Op{
             .mnemonic = .LD,
@@ -2081,7 +1961,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x7F => Op{
             .mnemonic = .LD,
@@ -2098,7 +1977,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0x80 => Op{
             .mnemonic = .ADD,
@@ -2115,7 +1993,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x81 => Op{
             .mnemonic = .ADD,
@@ -2132,7 +2009,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x82 => Op{
             .mnemonic = .ADD,
@@ -2149,7 +2025,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x83 => Op{
             .mnemonic = .ADD,
@@ -2166,7 +2041,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x84 => Op{
             .mnemonic = .ADD,
@@ -2183,7 +2057,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x85 => Op{
             .mnemonic = .ADD,
@@ -2200,7 +2073,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x86 => Op{
             .mnemonic = .ADD,
@@ -2217,7 +2089,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x87 => Op{
             .mnemonic = .ADD,
@@ -2234,7 +2105,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x88 => Op{
             .mnemonic = .ADC,
@@ -2251,7 +2121,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x89 => Op{
             .mnemonic = .ADC,
@@ -2268,7 +2137,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x8A => Op{
             .mnemonic = .ADC,
@@ -2285,7 +2153,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x8B => Op{
             .mnemonic = .ADC,
@@ -2302,7 +2169,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x8C => Op{
             .mnemonic = .ADC,
@@ -2319,7 +2185,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x8D => Op{
             .mnemonic = .ADC,
@@ -2336,7 +2201,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x8E => Op{
             .mnemonic = .ADC,
@@ -2353,7 +2217,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x8F => Op{
             .mnemonic = .ADC,
@@ -2370,7 +2233,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0x90 => Op{
             .mnemonic = .SUB,
@@ -2387,7 +2249,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x91 => Op{
             .mnemonic = .SUB,
@@ -2404,7 +2265,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x92 => Op{
             .mnemonic = .SUB,
@@ -2421,7 +2281,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x93 => Op{
             .mnemonic = .SUB,
@@ -2438,7 +2297,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x94 => Op{
             .mnemonic = .SUB,
@@ -2455,7 +2313,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x95 => Op{
             .mnemonic = .SUB,
@@ -2472,7 +2329,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x96 => Op{
             .mnemonic = .SUB,
@@ -2489,7 +2345,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x97 => Op{
             .mnemonic = .SUB,
@@ -2506,7 +2361,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '1', .n = '1', .h = '0', .c = '0' },
         },
         0x98 => Op{
             .mnemonic = .SBC,
@@ -2523,7 +2377,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x99 => Op{
             .mnemonic = .SBC,
@@ -2540,7 +2393,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x9A => Op{
             .mnemonic = .SBC,
@@ -2557,7 +2409,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x9B => Op{
             .mnemonic = .SBC,
@@ -2574,7 +2425,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x9C => Op{
             .mnemonic = .SBC,
@@ -2591,7 +2441,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x9D => Op{
             .mnemonic = .SBC,
@@ -2608,7 +2457,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x9E => Op{
             .mnemonic = .SBC,
@@ -2625,7 +2473,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0x9F => Op{
             .mnemonic = .SBC,
@@ -2642,7 +2489,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = '-' },
         },
         0xA0 => Op{
             .mnemonic = .AND,
@@ -2659,7 +2505,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '1', .c = '0' },
         },
         0xA1 => Op{
             .mnemonic = .AND,
@@ -2676,7 +2521,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '1', .c = '0' },
         },
         0xA2 => Op{
             .mnemonic = .AND,
@@ -2693,7 +2537,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '1', .c = '0' },
         },
         0xA3 => Op{
             .mnemonic = .AND,
@@ -2710,7 +2553,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '1', .c = '0' },
         },
         0xA4 => Op{
             .mnemonic = .AND,
@@ -2727,7 +2569,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '1', .c = '0' },
         },
         0xA5 => Op{
             .mnemonic = .AND,
@@ -2744,7 +2585,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '1', .c = '0' },
         },
         0xA6 => Op{
             .mnemonic = .AND,
@@ -2761,7 +2601,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '1', .c = '0' },
         },
         0xA7 => Op{
             .mnemonic = .AND,
@@ -2778,7 +2617,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '1', .c = '0' },
         },
         0xA8 => Op{
             .mnemonic = .XOR,
@@ -2795,7 +2633,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xA9 => Op{
             .mnemonic = .XOR,
@@ -2812,7 +2649,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xAA => Op{
             .mnemonic = .XOR,
@@ -2829,7 +2665,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xAB => Op{
             .mnemonic = .XOR,
@@ -2846,7 +2681,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xAC => Op{
             .mnemonic = .XOR,
@@ -2863,7 +2697,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xAD => Op{
             .mnemonic = .XOR,
@@ -2880,7 +2713,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xAE => Op{
             .mnemonic = .XOR,
@@ -2897,7 +2729,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xAF => Op{
             .mnemonic = .XOR,
@@ -2914,7 +2745,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '1', .n = '0', .h = '0', .c = '0' },
         },
         0xB0 => Op{
             .mnemonic = .OR,
@@ -2931,7 +2761,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xB1 => Op{
             .mnemonic = .OR,
@@ -2948,7 +2777,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xB2 => Op{
             .mnemonic = .OR,
@@ -2965,7 +2793,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xB3 => Op{
             .mnemonic = .OR,
@@ -2982,7 +2809,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xB4 => Op{
             .mnemonic = .OR,
@@ -2999,7 +2825,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xB5 => Op{
             .mnemonic = .OR,
@@ -3016,7 +2841,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xB6 => Op{
             .mnemonic = .OR,
@@ -3033,7 +2857,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xB7 => Op{
             .mnemonic = .OR,
@@ -3050,7 +2873,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xB8 => Op{
             .mnemonic = .CP,
@@ -3067,7 +2889,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0xB9 => Op{
             .mnemonic = .CP,
@@ -3084,7 +2905,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0xBA => Op{
             .mnemonic = .CP,
@@ -3101,7 +2921,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0xBB => Op{
             .mnemonic = .CP,
@@ -3118,7 +2937,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0xBC => Op{
             .mnemonic = .CP,
@@ -3135,7 +2953,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0xBD => Op{
             .mnemonic = .CP,
@@ -3152,7 +2969,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0xBE => Op{
             .mnemonic = .CP,
@@ -3169,7 +2985,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0xBF => Op{
             .mnemonic = .CP,
@@ -3186,7 +3001,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '1', .n = '1', .h = '0', .c = '0' },
         },
         0xC0 => Op{
             .mnemonic = .RET,
@@ -3199,7 +3013,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xC1 => Op{
             .mnemonic = .POP,
@@ -3212,7 +3025,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xC2 => Op{
             .mnemonic = .JP,
@@ -3230,7 +3042,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xC3 => Op{
             .mnemonic = .JP,
@@ -3244,7 +3055,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xC4 => Op{
             .mnemonic = .CALL,
@@ -3262,7 +3072,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xC5 => Op{
             .mnemonic = .PUSH,
@@ -3275,7 +3084,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xC6 => Op{
             .mnemonic = .ADD,
@@ -3293,7 +3101,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0xC7 => Op{
             .mnemonic = .RST,
@@ -3306,7 +3113,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xC8 => Op{
             .mnemonic = .RET,
@@ -3319,14 +3125,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xC9 => Op{
             .mnemonic = .RET,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xCA => Op{
             .mnemonic = .JP,
@@ -3344,14 +3148,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xCB => Op{
             .mnemonic = .PREFIX,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xCC => Op{
             .mnemonic = .CALL,
@@ -3369,7 +3171,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xCD => Op{
             .mnemonic = .CALL,
@@ -3383,7 +3184,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xCE => Op{
             .mnemonic = .ADC,
@@ -3401,7 +3201,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = 'h', .c = 'c' },
         },
         0xCF => Op{
             .mnemonic = .RST,
@@ -3414,7 +3213,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xD0 => Op{
             .mnemonic = .RET,
@@ -3427,7 +3225,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xD1 => Op{
             .mnemonic = .POP,
@@ -3440,7 +3237,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xD2 => Op{
             .mnemonic = .JP,
@@ -3458,14 +3254,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xD3 => Op{
             .mnemonic = .ILLEGAL_D3,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xD4 => Op{
             .mnemonic = .CALL,
@@ -3483,7 +3277,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xD5 => Op{
             .mnemonic = .PUSH,
@@ -3496,7 +3289,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xD6 => Op{
             .mnemonic = .SUB,
@@ -3514,7 +3306,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0xD7 => Op{
             .mnemonic = .RST,
@@ -3527,7 +3318,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xD8 => Op{
             .mnemonic = .RET,
@@ -3540,14 +3330,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xD9 => Op{
             .mnemonic = .RETI,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xDA => Op{
             .mnemonic = .JP,
@@ -3565,14 +3353,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xDB => Op{
             .mnemonic = .ILLEGAL_DB,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xDC => Op{
             .mnemonic = .CALL,
@@ -3590,14 +3376,12 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xDD => Op{
             .mnemonic = .ILLEGAL_DD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xDE => Op{
             .mnemonic = .SBC,
@@ -3615,7 +3399,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0xDF => Op{
             .mnemonic = .RST,
@@ -3628,7 +3411,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xE0 => Op{
             .mnemonic = .LDH,
@@ -3646,7 +3428,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xE1 => Op{
             .mnemonic = .POP,
@@ -3659,7 +3440,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xE2 => Op{
             .mnemonic = .LD,
@@ -3676,21 +3456,18 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xE3 => Op{
             .mnemonic = .ILLEGAL_E3,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xE4 => Op{
             .mnemonic = .ILLEGAL_E4,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xE5 => Op{
             .mnemonic = .PUSH,
@@ -3703,7 +3480,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xE6 => Op{
             .mnemonic = .AND,
@@ -3721,7 +3497,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '1', .c = '0' },
         },
         0xE7 => Op{
             .mnemonic = .RST,
@@ -3734,7 +3509,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xE8 => Op{
             .mnemonic = .ADD,
@@ -3752,7 +3526,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '0', .n = '0', .h = 'h', .c = 'c' },
         },
         0xE9 => Op{
             .mnemonic = .JP,
@@ -3765,7 +3538,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xEA => Op{
             .mnemonic = .LD,
@@ -3783,28 +3555,24 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xEB => Op{
             .mnemonic = .ILLEGAL_EB,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xEC => Op{
             .mnemonic = .ILLEGAL_EC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xED => Op{
             .mnemonic = .ILLEGAL_ED,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xEE => Op{
             .mnemonic = .XOR,
@@ -3822,7 +3590,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xEF => Op{
             .mnemonic = .RST,
@@ -3835,7 +3602,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xF0 => Op{
             .mnemonic = .LDH,
@@ -3853,7 +3619,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xF1 => Op{
             .mnemonic = .POP,
@@ -3866,7 +3631,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = 'n', .h = 'h', .c = 'c' },
         },
         0xF2 => Op{
             .mnemonic = .LD,
@@ -3883,21 +3647,18 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xF3 => Op{
             .mnemonic = .DI,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xF4 => Op{
             .mnemonic = .ILLEGAL_F4,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xF5 => Op{
             .mnemonic = .PUSH,
@@ -3910,7 +3671,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xF6 => Op{
             .mnemonic = .OR,
@@ -3928,7 +3688,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '0', .h = '0', .c = '0' },
         },
         0xF7 => Op{
             .mnemonic = .RST,
@@ -3941,7 +3700,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xF8 => Op{
             .mnemonic = .LD,
@@ -3963,7 +3721,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '0', .n = '0', .h = 'h', .c = 'c' },
         },
         0xF9 => Op{
             .mnemonic = .LD,
@@ -3980,7 +3737,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xFA => Op{
             .mnemonic = .LD,
@@ -3998,28 +3754,24 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = false,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xFB => Op{
             .mnemonic = .EI,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xFC => Op{
             .mnemonic = .ILLEGAL_FC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xFD => Op{
             .mnemonic = .ILLEGAL_FD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
         0xFE => Op{
             .mnemonic = .CP,
@@ -4037,7 +3789,6 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = 'z', .n = '1', .h = 'h', .c = 'c' },
         },
         0xFF => Op{
             .mnemonic = .RST,
@@ -4050,337 +3801,157 @@ fn fetch_opcode(opcode: u8) Op {
                     .immediate = true,
                 },
             },
-            .flags = .{ .z = '-', .n = '-', .h = '-', .c = '-' },
         },
     };
 }
 
-const Register = struct {
-    body: u8 = 0,
-
-    inline fn read(self: *Register) u8 {
-        return self.body;
-    }
-
-    inline fn write(self: *Register, value: u8) void {
-        self.body = value;
-    }
-};
-
-const LongRegister = struct {
-    upper: *u8 = undefined,
-    lower: *u8 = undefined,
-
-    inline fn read(self: *LongRegister) u16 {
-        return @as(u16, @intCast(self.upper.*)) << 8 | @as(u16, @intCast(self.lower.*));
-    }
-
-    inline fn write(self: *LongRegister, value: u16) void {
-        self.upper.* = @truncate(value >> 8);
-        self.lower.* = @truncate(value);
-    }
+const R = enum(u3) {
+    // Register order
+    b = 0,
+    c = 1,
+    d = 2,
+    e = 3,
+    h = 4,
+    l = 5,
+    f = 6,
+    a = 7,
 };
 
 bus: *Bus,
-regs: struct {
-    a: Register,
-    f: Register,
-    b: Register,
-    c: Register,
-    d: Register,
-    e: Register,
-    h: Register,
-    l: Register,
-    af: LongRegister,
-    bc: LongRegister,
-    de: LongRegister,
-    hl: LongRegister,
-    sp: u16,
-    pc: u16,
+registers: struct {
+    const Self = @This();
+
+    r8: [8]u8,
+
+    /// Set register value
+    inline fn set(self: *Self, register_name: R, value: u8) void {
+        self.r8[@intFromEnum(register_name)] = value;
+    }
+
+    inline fn get(self: *Self, register_name: R) u8 {
+        return self.r8[@intFromEnum(register_name)];
+    }
+
+    fn get_bc(self: *Self) u16 {
+        return @as(u16, self.get(R.b)) << 8 | @as(u16, self.get(R.c));
+    }
+
+    fn set_bc(self: *Self, value: u16) void {
+        self.set(R.b, @as(u8, (value & 0xFF00) >> 8));
+        self.set(R.c, @as(u8, value & 0x00FF));
+    }
+
+    fn get_de(self: *Self) u16 {
+        return @as(u16, self.get(R.d)) << 8 | @as(u16, self.get(R.e));
+    }
+
+    fn set_de(self: *Self, value: u16) void {
+        self.set(R.d, @as(u8, (value & 0xFF00) >> 8));
+        self.set(R.e, @as(u8, value & 0x00FF));
+    }
+
+    fn get_hl(self: *Self) u16 {
+        return @as(u16, self.get(R.h)) << 8 | @as(u16, self.get(R.l));
+    }
+
+    fn set_hl(self: *Self, value: u16) void {
+        self.set(R.h, @as(u8, (value & 0xFF00) >> 8));
+        self.set(R.l, @as(u8, value & 0x00FF));
+    }
+
+    fn get_af(self: *Self) u16 {
+        return @as(u16, self.get(R.a)) << 8 | @as(u16, self.get(R.f));
+    }
+
+    fn set_af(self: *Self, value: u16) void {
+        self.set(R.a, @as(u8, (value & 0xFF00) >> 8));
+        self.set(R.f, @as(u8, value & 0x00FF));
+    }
+
+    fn get_flags(self: *Self) Flags {
+        const f_register = self.r8[@intFromEnum(R.f)];
+        const zero = ((f_register >> Flags.ZERO_FLAG_BYTE_POSITION) & 0b1) != 0;
+        const subtract = ((f_register >> Flags.SUBTRACT_FLAG_BYTE_POSITION) & 0b1) != 0;
+        const half_carry = ((f_register >> Flags.HALF_CARRY_FLAG_BYTE_POSITION) & 0b1) != 0;
+        const carry = ((f_register >> Flags.CARRY_FLAG_BYTE_POSITION) & 0b1) != 0;
+
+        return .{
+            zero,
+            subtract,
+            half_carry,
+            carry,
+        };
+    }
+
+    fn set_flags(self: *Self, flags: Flags) void {
+        var result: u8 = 0;
+
+        result |= (if (flags.zero) 1 else 0) << Flags.ZERO_FLAG_BYTE_POSITION;
+        result |= (if (flags.subtract) 1 else 0) << Flags.SUBTRACT_FLAG_BYTE_POSITION;
+        result |= (if (flags.half_carry) 1 else 0) << Flags.HALF_CARRY_FLAG_BYTE_POSITION;
+        result |= (if (flags.carry) 1 else 0) << Flags.CARRY_FLAG_BYTE_POSITION;
+        self.set(R.f, result);
+    }
 },
+pc: u16,
+sp: u16,
 clock: Clock,
 cur_opcode: u8,
 halted: bool,
 stepping: bool,
 
-inline fn two_u8_to_u16(data: []const u8) u16 {
-    return @as(u16, @intCast(data[1])) << 8 | data[0];
-}
-
-inline fn u8_to_u16(value: u8) u16 {
-    return @as(u16, 0) | value;
-}
-
-inline fn map_operand_to_register(cpu: *Cpu, operand_name: *const OperandName) *Register {
-    return switch (operand_name.*) {
-        .A => &cpu.regs.a,
-        .B => &cpu.regs.b,
-        .C => &cpu.regs.c,
-        .D => &cpu.regs.d,
-        .E => &cpu.regs.e,
-        .H => &cpu.regs.h,
-        .L => &cpu.regs.l,
-        else => unreachable,
-    };
-}
-
-fn set_flags(self: *Cpu, flags: struct {
-    z: ?u1 = undefined,
-    n: ?u1 = undefined,
-    h: ?u1 = undefined,
-    c: ?u1 = undefined,
-}) void {
-    var result: u8 = self.regs.f.read();
-
-    if (flags.z) |z| {
-        result = (result & ~@as(u8, 1 << 7)) | (@as(u8, z) << 7);
-    }
-    if (flags.n) |n| {
-        result = (result & ~@as(u8, 1 << 6)) | (@as(u8, n) << 6);
-    }
-    if (flags.h) |h| {
-        result = (result & ~@as(u8, 1 << 5)) | (@as(u8, h) << 5);
-    }
-    if (flags.c) |c| {
-        result = (result & ~@as(u8, 1 << 4)) | (@as(u8, c) << 4);
-    }
-
-    self.regs.f.write(result);
-    std.log.debug("flags {b:0>8}", .{self.regs.f.read()});
-}
-
 fn fetch_inst(self: *Cpu) void {
-    const opcode: u8 = self.bus.read(self.regs.pc, 1)[0];
-    self.regs.pc += 1;
-    std.log.debug("read  0x{X:0>2} 0o{o:0>3}", .{ opcode, opcode });
+    const opcode: u8 = self.bus.read_byte(self.pc);
+    self.pc += 1;
     self.cur_opcode = opcode;
 }
 
 fn exec_inst(self: *Cpu) void {
     const opcode = self.cur_opcode;
     const op = fetch_opcode(self.cur_opcode);
-    const operands_size: u8 = op.bytes - 1;
-    var operands: []const u8 = undefined;
-    var z: u1 = undefined;
-    var n: u1 = undefined;
-    var h: u1 = undefined;
-    var c: u1 = undefined;
 
-    if (operands_size > 0) {
-        operands = self.bus.read(self.regs.pc, operands_size);
-        self.regs.pc += operands_size;
-    }
-    std.log.debug("op    {s} (size: {})", .{ @tagName(op.mnemonic), op.bytes });
+    std.log.debug(
+        \\
+        \\Instruction
+        \\0x{X:0>2} 0o{o:0>3}
+        \\name {s}
+        \\size {}
+        \\
+    , .{
+        opcode,
+        opcode,
+        @tagName(op.mnemonic),
+        op.bytes,
+    });
 
     switch (op.mnemonic) {
-        .ADD => {
-            const value: u8 = switch (opcode) {
-                0o206 => self.bus.read(self.regs.hl.read(), 1)[0],
-                else => map_operand_to_register(self, &op.operands[1].name).read(),
-            };
-            self.regs.a.write(self.regs.a.read() + value);
-        },
         .NOP => {},
-        .CALL => {
-            const address = two_u8_to_u16(operands);
-            switch (opcode) {
-                0o315 => {
-                    // CALL n16
-                    self.regs.sp = self.regs.pc - op.bytes;
-                    self.regs.pc = address;
-                },
-                else => {
-                    // CALL cc, n16
-                    const condition_met: bool = switch (opcode) {
-                        0o300 => self.regs.f.read() >> 7 & 1 == 0,
-                        0o310 => self.regs.f.read() >> 6 & 1 == 1,
-                        0o320 => self.regs.f.read() >> 5 & 1 == 0,
-                        0o330 => self.regs.f.read() >> 4 & 1 == 1,
-                        else => unreachable,
-                    };
-                    if (condition_met) {
-                        self.regs.sp = self.regs.pc - op.bytes;
-                        self.regs.pc = address;
-                    }
-                },
-            }
-        },
-        .CP => {
-            const reg_dst: *Register = map_operand_to_register(self, &op.operands[0].name);
-            const value: u8 = switch (opcode) {
-                0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBF => map_operand_to_register(self, &op.operands[1].name).read(),
-                0xBE => self.bus.read(self.regs.hl.read(), 1)[0],
-                0xFE => operands[0],
-                else => unreachable,
-            };
-            const result = reg_dst.read() + value;
-            if (result == 0) {
-                z = 1;
-            }
-            n = 1;
-            h = if (result >> 4 & 1 == 1) 1 else 0;
-            c = if (result >> 4 & 1 == 1) 1 else 0;
-        },
-        .DI => {
-            self.halted = false;
-        },
-        .JP => {
-            switch (opcode) {
-                0xC3 => {
-                    const address = two_u8_to_u16(operands);
-                    self.regs.pc = address;
-                },
-                else => unreachable,
-            }
-        },
-        .JR => {
-            const offset: i8 = @bitCast(operands[0]);
-            const address: u16 = @intCast(@as(i16, @intCast(self.regs.pc)) + @as(i16, offset));
-            switch (opcode) {
-                0o030 => {
-                    // JR n16
-                    self.regs.pc = address;
-                },
-                else => {
-                    // JR cc, n16
-                    const condition_met: bool = switch (opcode) {
-                        0o040 => self.regs.f.read() >> 7 & 1 == 0,
-                        0o050 => self.regs.f.read() >> 6 & 1 == 1,
-                        0o060 => self.regs.f.read() >> 5 & 1 == 0,
-                        0o070 => self.regs.f.read() >> 4 & 1 == 1,
-                        else => unreachable,
-                    };
-                    if (condition_met) {
-                        self.regs.pc = address;
-                    }
-                },
-            }
-        },
         .LD => {
             switch (opcode) {
-                0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6F, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7F => {
-                    const reg_dst: *Register = map_operand_to_register(self, &op.operands[0].name);
-                    const reg_src: *Register = map_operand_to_register(self, &op.operands[1].name);
-                    reg_dst.write(reg_src.read());
-                },
-                0x01 => {
-                    const value = two_u8_to_u16(operands);
-                    self.regs.bc.write(value);
-                },
-                0x11 => {
-                    const value = two_u8_to_u16(operands);
-                    self.regs.de.write(value);
-                },
-                0x21 => {
-                    const value = two_u8_to_u16(operands);
-                    self.regs.hl.write(value);
-                },
-                0x31 => {
-                    const value = two_u8_to_u16(operands);
-                    self.regs.sp = value;
-                },
-                0x36 => {
-                    const address = self.regs.hl.read();
-                    const value = operands[0];
-                    self.bus.write(address, value);
-                },
-                0xEA => {
-                    const address = two_u8_to_u16(operands);
-                    self.bus.write(address, self.regs.a.read());
-                },
-                0x0E, 0x1E, 0x2E, 0x3E, 0x06, 0x16, 0x26 => {
-                    const reg_dst: *Register = map_operand_to_register(self, &op.operands[0].name);
-                    const value = operands[0];
-                    reg_dst.write(value);
-                },
-                0o160, 0o161, 0o162, 0o163, 0o164, 0o165, 0o167 => {
-                    const reg_dst: *Register = map_operand_to_register(self, &op.operands[1].name);
-                    self.bus.write(self.regs.hl.read(), reg_dst.read());
-                },
-                0o376 => {
-                    const value = self.bus.read(two_u8_to_u16(operands), 1)[0];
-                    self.regs.a.write(value);
-                },
-                0x02 => {
-                    self.regs.bc.write(self.bus.read(self.regs.a.read(), 1)[0]);
-                },
-                0x12 => {
-                    self.regs.de.write(self.bus.read(self.regs.a.read(), 1)[0]);
-                },
-                0xFA => {
-                    self.regs.a.write(self.bus.read(two_u8_to_u16(operands), 1)[0]);
+                0o100...0o105,
+                0o107, // LD B, r8
+                0o110...0o115,
+                0o117, // LD C, r8
+                0o120...0o125,
+                0o127, // LD D, r8
+                0o130...0o135,
+                0o137, // LD E, r8
+                0o140...0o145,
+                0o147, // LD H, r8
+                0o150...0o155,
+                0o157, // LD L, r8
+                0o170...0o175,
+                0o177, // LD A, r8
+                => {
+                    const dst: R = @enumFromInt(opcode >> 3 & 7);
+                    const src: R = @enumFromInt(opcode & 7);
+                    self.registers.set(dst, self.registers.get(src));
                 },
                 else => unreachable,
             }
         },
-        .LDH => {
-            switch (opcode) {
-                0o340 => {
-                    // LDH a8, A
-                    const address: u16 = 0xFF00 + @as(u16, @intCast(operands[0]));
-                    const reg_src: *Register = &self.regs.a;
-                    self.bus.write(address, reg_src.read());
-                },
-                0o360 => {
-                    // LDH A, a8
-                    const address: u16 = 0xFF00 + @as(u16, @intCast(operands[0]));
-                    const reg_dst: *Register = &self.regs.a;
-                    const value = self.bus.read(address, 1)[0];
-                    reg_dst.write(value);
-                },
-                else => unreachable,
-            }
-        },
-        .PUSH => {
-            const value: u16 = switch (opcode) {
-                0o305 => self.regs.bc.read(),
-                0o325 => self.regs.de.read(),
-                0o345 => self.regs.hl.read(),
-                0o365 => self.regs.af.read(),
-                else => unreachable,
-            };
-            self.regs.pc = value;
-        },
-        .RET => {
-            switch (opcode) {
-                0o311 => {
-                    // JRn16
-                },
-                else => {
-                    // JR cc, n16
-                    const condition_met: bool = switch (opcode) {
-                        0o300 => self.regs.f.read() >> 7 & 1 == 0,
-                        0o310 => self.regs.f.read() >> 6 & 1 == 1,
-                        0o320 => self.regs.f.read() >> 5 & 1 == 0,
-                        0o330 => self.regs.f.read() >> 4 & 1 == 1,
-                        else => unreachable,
-                    };
-                    if (condition_met) {}
-                },
-            }
-        },
-        .HALT => {
-            self.halted = true;
-        },
-        .XOR => {
-            switch (opcode) {
-                0xAF => {
-                    self.regs.a.write(self.regs.a.read() ^ self.regs.a.read());
-                    if (self.regs.a.read() == 0) {
-                        z = 0;
-                    }
-                },
-                else => unreachable,
-            }
-        },
-        else => @panic("Op not implemented"),
+        else => @panic("Operation not implemented"),
     }
-    set_flags(self, .{
-        .z = z,
-        .n = n,
-        .h = h,
-        .c = c,
-    });
 }
 
 pub fn step(self: *Cpu) !void {
@@ -4390,70 +3961,51 @@ pub fn step(self: *Cpu) !void {
 
 pub inline fn print(self: *Cpu) void {
     std.log.debug(
-        \\registers
-        \\       a  = {}
-        \\       f  = {}
-        \\       b  = {}
-        \\       c  = {}
-        \\       d  = {}
-        \\       e  = {}
-        \\       h  = {}
-        \\       l  = {}
-        \\       ap = {} 
-        \\       bc = {} 
-        \\       de = {} 
-        \\       hl = {} 
-        \\       sp = 0x{X:0>4} 
-        \\       pc = 0x{X:0>4} 
+        \\
+        \\Registers
+        \\b  = {}
+        \\c  = {}
+        \\d  = {}
+        \\e  = {}
+        \\h  = {}
+        \\l  = {}
+        \\a  = {}
+        \\f  = {}
+        \\bc = {} 
+        \\de = {} 
+        \\hl = {} 
+        \\af = {} 
+        \\pc = 0x{X:0>4} 
+        \\sp = 0x{X:0>4} 
     , .{
-        self.regs.a.read(),
-        self.regs.f.read(),
-        self.regs.b.read(),
-        self.regs.c.read(),
-        self.regs.d.read(),
-        self.regs.e.read(),
-        self.regs.h.read(),
-        self.regs.l.read(),
-        self.regs.af.read(),
-        self.regs.bc.read(),
-        self.regs.de.read(),
-        self.regs.hl.read(),
-        self.regs.sp,
-        self.regs.pc,
+        self.registers.get(R.b),
+        self.registers.get(R.c),
+        self.registers.get(R.d),
+        self.registers.get(R.e),
+        self.registers.get(R.h),
+        self.registers.get(R.l),
+        self.registers.get(R.a),
+        self.registers.get(R.f),
+        self.registers.get_bc(),
+        self.registers.get_de(),
+        self.registers.get_hl(),
+        self.registers.get_af(),
+        self.pc,
+        0,
     });
 }
 
 pub fn init(bus: *Bus) Cpu {
-    var a = Register{};
-    var f = Register{};
-    var b = Register{};
-    var c = Register{};
-    var d = Register{};
-    var e = Register{};
-    var h = Register{};
-    var l = Register{};
-
     return .{
         .bus = bus,
-        .regs = .{
-            .a = a,
-            .f = f,
-            .b = b,
-            .c = c,
-            .d = d,
-            .e = e,
-            .h = h,
-            .l = l,
-            .af = LongRegister{ .upper = &a.body, .lower = &f.body },
-            .bc = LongRegister{ .upper = &b.body, .lower = &c.body },
-            .de = LongRegister{ .upper = &d.body, .lower = &e.body },
-            .hl = LongRegister{ .upper = &h.body, .lower = &l.body },
-            .sp = 0,
-            .pc = 0x100,
+        .registers = .{
+            .r8 = [_]u8{0} ** 8,
         },
         .clock = Clock{},
         .cur_opcode = undefined,
         .halted = false,
         .stepping = false,
+        .pc = 0x100,
+        .sp = 0,
     };
 }

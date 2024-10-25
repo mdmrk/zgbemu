@@ -4,11 +4,17 @@ const Cartridge = @import("Cartridge.zig");
 const Bus = @This();
 
 cartridge: *Cartridge,
+memory: [0xFFFF]u8,
 
 pub fn init(cartridge: *Cartridge) Bus {
     return .{
         .cartridge = cartridge,
+        .memory = [_]u8{0} ** 0xFFFF,
     };
+}
+
+pub inline fn read_byte(self: *Bus, address: u16) u8 {
+    return self.memory[address];
 }
 
 pub inline fn read(self: *Bus, address: u16, bytes: u8) []const u8 {
