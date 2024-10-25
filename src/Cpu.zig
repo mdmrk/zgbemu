@@ -4072,12 +4072,12 @@ const LongRegister = struct {
     lower: *u8 = undefined,
 
     inline fn read(self: *LongRegister) u16 {
-        return @as(u16, @intCast(self.upper.*)) << 8 | self.lower.*;
+        return @as(u16, @intCast(self.upper.*)) << 8 | @as(u16, @intCast(self.lower.*));
     }
 
     inline fn write(self: *LongRegister, value: u16) void {
-        self.upper.* = @as(u8, @intCast(value >> 8)) & 0xFF;
-        self.lower.* = @as(u8, @intCast(value & 0xFF));
+        self.upper.* = @truncate(value >> 8);
+        self.lower.* = @truncate(value);
     }
 };
 
@@ -4124,34 +4124,35 @@ inline fn map_operand_to_register(cpu: *Cpu, operand_name: *const OperandName) *
     };
 }
 
-fn set_f_flags(self: *Cpu, flags: struct {
-    z: u8 = undefined,
-    n: u8 = undefined,
-    h: u8 = undefined,
-    c: u8 = undefined,
+fn set_flags(self: *Cpu, flags: struct {
+    z: ?u1 = undefined,
+    n: ?u1 = undefined,
+    h: ?u1 = undefined,
+    c: ?u1 = undefined,
 }) void {
     var result: u8 = self.regs.f.read();
 
-    if (flags.z != undefined) {
-        result ^= flags.z << 4;
+    if (flags.z) |z| {
+        result = (result & ~@as(u8, 1 << 7)) | (@as(u8, z) << 7);
     }
-    if (flags.n != undefined) {
-        result ^= flags.n << 5;
+    if (flags.n) |n| {
+        result = (result & ~@as(u8, 1 << 6)) | (@as(u8, n) << 6);
     }
-    if (flags.h != undefined) {
-        result ^= flags.h << 6;
+    if (flags.h) |h| {
+        result = (result & ~@as(u8, 1 << 5)) | (@as(u8, h) << 5);
     }
-    if (flags.c != undefined) {
-        result ^= flags.c << 7;
+    if (flags.c) |c| {
+        result = (result & ~@as(u8, 1 << 4)) | (@as(u8, c) << 4);
     }
+
     self.regs.f.write(result);
-    std.log.debug("{b:0>8}b", .{self.regs.f.read()});
+    std.log.debug("flags {b:0>8}", .{self.regs.f.read()});
 }
 
 fn fetch_inst(self: *Cpu) void {
     const opcode: u8 = self.bus.read(self.regs.pc, 1)[0];
     self.regs.pc += 1;
-    std.log.debug("read 0x{X:0>2}", .{opcode});
+    std.log.debug("read  0x{X:0>2} 0o{o:0>3}", .{ opcode, opcode });
     self.cur_opcode = opcode;
 }
 
@@ -4160,18 +4161,25 @@ fn exec_inst(self: *Cpu) void {
     const op = fetch_opcode(self.cur_opcode);
     const operands_size: u8 = op.bytes - 1;
     var operands: []const u8 = undefined;
-    var z: u8 = undefined;
-    var n: u8 = undefined;
-    var h: u8 = undefined;
-    var c: u8 = undefined;
+    var z: u1 = undefined;
+    var n: u1 = undefined;
+    var h: u1 = undefined;
+    var c: u1 = undefined;
 
     if (operands_size > 0) {
         operands = self.bus.read(self.regs.pc, operands_size);
         self.regs.pc += operands_size;
     }
-    std.log.debug("op   {s} (size: {})", .{ @tagName(op.mnemonic), op.bytes });
+    std.log.debug("op    {s} (size: {})", .{ @tagName(op.mnemonic), op.bytes });
 
     switch (op.mnemonic) {
+        .ADD => {
+            const value: u8 = switch (opcode) {
+                0o206 => self.bus.read(self.regs.hl.read(), 1)[0],
+                else => map_operand_to_register(self, &op.operands[1].name).read(),
+            };
+            self.regs.a.write(self.regs.a.read() + value);
+        },
         .NOP => {},
         .CALL => {
             const address = two_u8_to_u16(operands);
@@ -4183,11 +4191,11 @@ fn exec_inst(self: *Cpu) void {
                 },
                 else => {
                     // CALL cc, n16
-                    const condition_met: bool = switch (opcode >> 3) {
-                        0o30 => self.regs.f.read() >> 4 & 1 == 0,
-                        0o31 => self.regs.f.read() >> 5 & 1 == 1,
-                        0o32 => self.regs.f.read() >> 6 & 1 == 0,
-                        0o33 => self.regs.f.read() >> 7 & 1 == 1,
+                    const condition_met: bool = switch (opcode) {
+                        0o300 => self.regs.f.read() >> 7 & 1 == 0,
+                        0o310 => self.regs.f.read() >> 6 & 1 == 1,
+                        0o320 => self.regs.f.read() >> 5 & 1 == 0,
+                        0o330 => self.regs.f.read() >> 4 & 1 == 1,
                         else => unreachable,
                     };
                     if (condition_met) {
@@ -4223,6 +4231,29 @@ fn exec_inst(self: *Cpu) void {
                     self.regs.pc = address;
                 },
                 else => unreachable,
+            }
+        },
+        .JR => {
+            const offset: i8 = @bitCast(operands[0]);
+            const address: u16 = @intCast(@as(i16, @intCast(self.regs.pc)) + @as(i16, offset));
+            switch (opcode) {
+                0o030 => {
+                    // JR n16
+                    self.regs.pc = address;
+                },
+                else => {
+                    // JR cc, n16
+                    const condition_met: bool = switch (opcode) {
+                        0o040 => self.regs.f.read() >> 7 & 1 == 0,
+                        0o050 => self.regs.f.read() >> 6 & 1 == 1,
+                        0o060 => self.regs.f.read() >> 5 & 1 == 0,
+                        0o070 => self.regs.f.read() >> 4 & 1 == 1,
+                        else => unreachable,
+                    };
+                    if (condition_met) {
+                        self.regs.pc = address;
+                    }
+                },
             }
         },
         .LD => {
@@ -4262,23 +4293,70 @@ fn exec_inst(self: *Cpu) void {
                     const value = operands[0];
                     reg_dst.write(value);
                 },
+                0o160, 0o161, 0o162, 0o163, 0o164, 0o165, 0o167 => {
+                    const reg_dst: *Register = map_operand_to_register(self, &op.operands[1].name);
+                    self.bus.write(self.regs.hl.read(), reg_dst.read());
+                },
+                0o376 => {
+                    const value = self.bus.read(two_u8_to_u16(operands), 1)[0];
+                    self.regs.a.write(value);
+                },
+                0x02 => {
+                    self.regs.bc.write(self.bus.read(self.regs.a.read(), 1)[0]);
+                },
+                0x12 => {
+                    self.regs.de.write(self.bus.read(self.regs.a.read(), 1)[0]);
+                },
+                0xFA => {
+                    self.regs.a.write(self.bus.read(two_u8_to_u16(operands), 1)[0]);
+                },
                 else => unreachable,
             }
         },
         .LDH => {
             switch (opcode) {
-                0xE0 => {
+                0o340 => {
+                    // LDH a8, A
                     const address: u16 = 0xFF00 + @as(u16, @intCast(operands[0]));
                     const reg_src: *Register = &self.regs.a;
                     self.bus.write(address, reg_src.read());
                 },
-                0xF0 => {
+                0o360 => {
+                    // LDH A, a8
                     const address: u16 = 0xFF00 + @as(u16, @intCast(operands[0]));
                     const reg_dst: *Register = &self.regs.a;
                     const value = self.bus.read(address, 1)[0];
                     reg_dst.write(value);
                 },
                 else => unreachable,
+            }
+        },
+        .PUSH => {
+            const value: u16 = switch (opcode) {
+                0o305 => self.regs.bc.read(),
+                0o325 => self.regs.de.read(),
+                0o345 => self.regs.hl.read(),
+                0o365 => self.regs.af.read(),
+                else => unreachable,
+            };
+            self.regs.pc = value;
+        },
+        .RET => {
+            switch (opcode) {
+                0o311 => {
+                    // JRn16
+                },
+                else => {
+                    // JR cc, n16
+                    const condition_met: bool = switch (opcode) {
+                        0o300 => self.regs.f.read() >> 7 & 1 == 0,
+                        0o310 => self.regs.f.read() >> 6 & 1 == 1,
+                        0o320 => self.regs.f.read() >> 5 & 1 == 0,
+                        0o330 => self.regs.f.read() >> 4 & 1 == 1,
+                        else => unreachable,
+                    };
+                    if (condition_met) {}
+                },
             }
         },
         .HALT => {
@@ -4297,7 +4375,7 @@ fn exec_inst(self: *Cpu) void {
         },
         else => @panic("Op not implemented"),
     }
-    set_f_flags(self, .{
+    set_flags(self, .{
         .z = z,
         .n = n,
         .h = h,

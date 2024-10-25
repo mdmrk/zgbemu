@@ -36,6 +36,6 @@ pub fn main() !void {
         try cpu.step();
         cpu.print();
         std.log.debug("{s}\n", .{&[_]u8{'='} ** 20});
-        _ = try std.io.getStdIn().reader().readByte();
+        // _ = try std.io.getStdIn().reader().readByte();
     }
 }
