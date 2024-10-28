@@ -8,7 +8,7 @@ const Clock = struct {
     t: u16 = 0,
 };
 
-const Flags = struct {
+const Flags = packed struct {
     const ZERO_FLAG_BYTE_POSITION: u8 = 7;
     const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;
     const HALF_CARRY_FLAG_BYTE_POSITION: u8 = 5;
@@ -3805,8 +3805,7 @@ fn fetch_opcode(opcode: u8) Op {
     };
 }
 
-const R = enum(u3) {
-    // Register order
+const R8Register = enum(u3) {
     b = 0,
     c = 1,
     d = 2,
@@ -3824,73 +3823,74 @@ registers: struct {
     r8: [8]u8,
 
     /// Set register value
-    inline fn set(self: *Self, register_name: R, value: u8) void {
+    inline fn set(self: *Self, register_name: R8Register, value: u8) void {
         self.r8[@intFromEnum(register_name)] = value;
     }
 
-    inline fn get(self: *Self, register_name: R) u8 {
+    /// Get register value
+    inline fn get(self: *Self, register_name: R8Register) u8 {
         return self.r8[@intFromEnum(register_name)];
     }
 
-    fn get_bc(self: *Self) u16 {
-        return @as(u16, self.get(R.b)) << 8 | @as(u16, self.get(R.c));
+    inline fn get_bc(self: *Self) u16 {
+        return two_u8_to_u16(self.get(.b), self.get(.c));
     }
 
-    fn set_bc(self: *Self, value: u16) void {
-        self.set(R.b, @as(u8, (value & 0xFF00) >> 8));
-        self.set(R.c, @as(u8, value & 0x00FF));
+    inline fn set_bc(self: *Self, value: u16) void {
+        self.set(.b, @as(u8, @intCast((value & 0xFF00) >> 8)));
+        self.set(.c, @as(u8, @intCast(value & 0x00FF)));
     }
 
-    fn get_de(self: *Self) u16 {
-        return @as(u16, self.get(R.d)) << 8 | @as(u16, self.get(R.e));
+    inline fn get_de(self: *Self) u16 {
+        return two_u8_to_u16(self.get(.d), self.get(.e));
     }
 
-    fn set_de(self: *Self, value: u16) void {
-        self.set(R.d, @as(u8, (value & 0xFF00) >> 8));
-        self.set(R.e, @as(u8, value & 0x00FF));
+    inline fn set_de(self: *Self, value: u16) void {
+        self.set(.d, @as(u8, @intCast((value & 0xFF00) >> 8)));
+        self.set(.e, @as(u8, @intCast(value & 0x00FF)));
     }
 
-    fn get_hl(self: *Self) u16 {
-        return @as(u16, self.get(R.h)) << 8 | @as(u16, self.get(R.l));
+    inline fn get_hl(self: *Self) u16 {
+        return two_u8_to_u16(self.get(.h), self.get(.l));
     }
 
-    fn set_hl(self: *Self, value: u16) void {
-        self.set(R.h, @as(u8, (value & 0xFF00) >> 8));
-        self.set(R.l, @as(u8, value & 0x00FF));
+    inline fn set_hl(self: *Self, value: u16) void {
+        self.set(.h, @as(u8, @intCast((value & 0xFF00) >> 8)));
+        self.set(.l, @as(u8, @intCast(value & 0x00FF)));
     }
 
-    fn get_af(self: *Self) u16 {
-        return @as(u16, self.get(R.a)) << 8 | @as(u16, self.get(R.f));
+    inline fn get_af(self: *Self) u16 {
+        return two_u8_to_u16(self.get(.a), self.get(.f));
     }
 
-    fn set_af(self: *Self, value: u16) void {
-        self.set(R.a, @as(u8, (value & 0xFF00) >> 8));
-        self.set(R.f, @as(u8, value & 0x00FF));
+    inline fn set_af(self: *Self, value: u16) void {
+        self.set(.a, @as(u8, @intCast((value & 0xFF00) >> 8)));
+        self.set(.f, @as(u8, @intCast(value & 0x00FF)));
     }
 
     fn get_flags(self: *Self) Flags {
-        const f_register = self.r8[@intFromEnum(R.f)];
+        const f_register = self.get(.f);
         const zero = ((f_register >> Flags.ZERO_FLAG_BYTE_POSITION) & 0b1) != 0;
         const subtract = ((f_register >> Flags.SUBTRACT_FLAG_BYTE_POSITION) & 0b1) != 0;
         const half_carry = ((f_register >> Flags.HALF_CARRY_FLAG_BYTE_POSITION) & 0b1) != 0;
         const carry = ((f_register >> Flags.CARRY_FLAG_BYTE_POSITION) & 0b1) != 0;
 
         return .{
-            zero,
-            subtract,
-            half_carry,
-            carry,
+            .zero = zero,
+            .subtract = subtract,
+            .half_carry = half_carry,
+            .carry = carry,
         };
     }
 
     fn set_flags(self: *Self, flags: Flags) void {
         var result: u8 = 0;
 
-        result |= (if (flags.zero) 1 else 0) << Flags.ZERO_FLAG_BYTE_POSITION;
-        result |= (if (flags.subtract) 1 else 0) << Flags.SUBTRACT_FLAG_BYTE_POSITION;
-        result |= (if (flags.half_carry) 1 else 0) << Flags.HALF_CARRY_FLAG_BYTE_POSITION;
-        result |= (if (flags.carry) 1 else 0) << Flags.CARRY_FLAG_BYTE_POSITION;
-        self.set(R.f, result);
+        result |= @as(u8, (if (flags.zero) 1 else 0)) << Flags.ZERO_FLAG_BYTE_POSITION;
+        result |= @as(u8, (if (flags.subtract) 1 else 0)) << Flags.SUBTRACT_FLAG_BYTE_POSITION;
+        result |= @as(u8, (if (flags.half_carry) 1 else 0)) << Flags.HALF_CARRY_FLAG_BYTE_POSITION;
+        result |= @as(u8, (if (flags.carry) 1 else 0)) << Flags.CARRY_FLAG_BYTE_POSITION;
+        self.set(.f, result);
     }
 },
 pc: u16,
@@ -3899,6 +3899,10 @@ clock: Clock,
 cur_opcode: u8,
 halted: bool,
 stepping: bool,
+
+inline fn two_u8_to_u16(upper: u8, lower: u8) u16 {
+    return (@as(u16, @intCast(upper)) << 8) | @as(u16, lower);
+}
 
 fn fetch_inst(self: *Cpu) void {
     const opcode: u8 = self.bus.read_byte(self.pc);
@@ -3909,6 +3913,14 @@ fn fetch_inst(self: *Cpu) void {
 fn exec_inst(self: *Cpu) void {
     const opcode = self.cur_opcode;
     const op = fetch_opcode(self.cur_opcode);
+    const operants_size = op.bytes - 1;
+    var operands: []const u8 = undefined;
+    var flags: Flags = self.registers.get_flags();
+
+    if (operants_size > 0) {
+        operands = self.bus.read(self.pc, operants_size);
+        self.pc += operants_size;
+    }
 
     std.log.debug(
         \\
@@ -3925,7 +3937,30 @@ fn exec_inst(self: *Cpu) void {
     });
 
     switch (op.mnemonic) {
-        .NOP => {},
+        .DI => {
+            self.halted = false;
+        },
+        .JP => {
+            const address: u16 = switch (opcode) {
+                0o351 => self.registers.get_hl(),
+                else => two_u8_to_u16(operands[1], operands[0]),
+            };
+            const is_conditional: bool = opcode & 7 == 2;
+            if (is_conditional) {
+                const condition_is_met: bool = switch (opcode) {
+                    0o302 => flags.zero == false,
+                    0o312 => flags.zero == true,
+                    0o322 => flags.carry == false,
+                    0o332 => flags.carry == true,
+                    else => unreachable,
+                };
+                if (condition_is_met) {
+                    self.pc = address;
+                }
+            } else {
+                self.pc = address;
+            }
+        },
         .LD => {
             switch (opcode) {
                 0o100...0o105,
@@ -3943,15 +3978,155 @@ fn exec_inst(self: *Cpu) void {
                 0o170...0o175,
                 0o177, // LD A, r8
                 => {
-                    const dst: R = @enumFromInt(opcode >> 3 & 7);
-                    const src: R = @enumFromInt(opcode & 7);
+                    const src: R8Register = @enumFromInt(opcode & 7);
+                    const dst: R8Register = @enumFromInt(opcode >> 3 & 7);
                     self.registers.set(dst, self.registers.get(src));
+                },
+                0o160...0o167, // LD [HL], r8
+                => {
+                    const src: R8Register = @enumFromInt(opcode & 7);
+                    self.registers.set_hl(self.registers.get(src));
+                },
+                0o106,
+                0o116,
+                0o126,
+                0o136,
+                0o146,
+                0o156,
+                0o176, // LD r8, [HL]
+                => {
+                    const dst: R8Register = @enumFromInt(opcode >> 3 & 7);
+                    self.registers.set(dst, self.bus.read_byte(self.registers.get_hl()));
+                },
+                0o006,
+                0o016,
+                0o026,
+                0o036,
+                0o046,
+                0o056,
+                0o076, // LD r8, n8
+                => {
+                    const dst: R8Register = @enumFromInt(opcode >> 3 & 7);
+                    const value: u8 = operands[0];
+                    self.registers.set(dst, value);
+                },
+                0o066, // LD [HL], n8
+                => {
+                    const value: u8 = operands[0];
+                    self.registers.set_hl(value);
+                },
+                0o001, // LD r16, n16
+                => {
+                    const value: u16 = two_u8_to_u16(operands[1], operands[0]);
+                    self.registers.set_bc(value);
+                },
+                0o021, // LD r16, n16
+                => {
+                    const value: u16 = two_u8_to_u16(operands[1], operands[0]);
+                    self.registers.set_de(value);
+                },
+                0o041, // LD r16, n16
+                => {
+                    const value: u16 = two_u8_to_u16(operands[1], operands[0]);
+                    self.registers.set_hl(value);
+                },
+                0o061, // LD r16, n16
+                => {
+                    const value: u16 = two_u8_to_u16(operands[1], operands[0]);
+                    self.sp = value;
+                },
+                0o352 => {
+                    const address: u16 = two_u8_to_u16(operands[1], operands[0]);
+                    self.bus.write(address, self.registers.get(.a));
+                },
+                else => unreachable,
+            }
+        },
+        .NOP => {},
+        .ADC, .SUB, .SBC, .AND, .XOR, .OR, .CP => {
+            const a = self.registers.get(.a);
+            const lower: u8 = opcode & 7;
+            const operand: u8 = switch (lower) {
+                0...5,
+                7, // OP A, r8
+                => self.registers.get(@as(R8Register, @enumFromInt(lower))),
+                6,
+                => if (opcode >> 6 & 7 == 2)
+                    self.bus.read_byte(self.registers.get_hl()) // OP A, [HL]
+                else
+                    operands[0], // OP A, n8
+                else => unreachable,
+            };
+
+            switch (op.mnemonic) {
+                .ADC,
+                => {
+                    const adc = a + operand + @as(u8, @intFromBool(flags.carry));
+                    self.registers.set(.a, adc);
+                    flags.zero = adc == 0;
+                    flags.subtract = false;
+                    flags.half_carry = ((a & 0xF) + (operand & 0xF) + @as(u8, @intFromBool(flags.carry))) > 0xF;
+                    flags.carry = (@as(u16, a) + operand + @as(u16, @intFromBool(flags.carry))) > 0xFF;
+                },
+                .SUB,
+                => {
+                    const sub = a - operand;
+                    self.registers.set(.a, sub);
+                    flags.zero = sub == 0;
+                    flags.subtract = false;
+                    flags.half_carry = ((a & 0xF) - (operand & 0xF)) < 0;
+                    flags.carry = operand > a;
+                },
+                .SBC,
+                => {
+                    const sbc = a - operand - @as(u8, @intFromBool(flags.carry));
+                    self.registers.set(.a, sbc);
+                    flags.zero = sbc == 0;
+                    flags.subtract = true;
+                    flags.half_carry = ((a & 0xF) - (operand & 0xF) - @as(u8, @intFromBool(flags.carry))) < 0;
+                    flags.carry = (operand + @as(u8, @intFromBool(flags.carry))) > a;
+                },
+                .AND,
+                => {
+                    const @"and" = a & operand;
+                    self.registers.set(.a, @"and");
+                    flags.zero = @"and" == 0;
+                    flags.subtract = false;
+                    flags.half_carry = true;
+                    flags.carry = false;
+                },
+                .XOR,
+                => {
+                    const xor = a ^ operand;
+                    self.registers.set(.a, xor);
+                    flags.zero = xor == 0;
+                    flags.subtract = false;
+                    flags.half_carry = false;
+                    flags.carry = false;
+                },
+                .OR,
+                => {
+                    const @"or" = a | operand;
+                    self.registers.set(.a, @"or");
+                    flags.zero = @"or" == 0;
+                    flags.subtract = false;
+                    flags.half_carry = false;
+                    flags.carry = false;
+                },
+                .CP,
+                => {
+                    const cp: i8 = @as(i8, @intCast(a)) - @as(i8, @intCast(operand));
+                    flags.zero = cp == 0;
+                    flags.subtract = true;
+                    flags.half_carry = ((a & 0xF) - (operand & 0xF)) < 0;
+                    flags.carry = operand > a;
                 },
                 else => unreachable,
             }
         },
         else => @panic("Operation not implemented"),
     }
+    self.registers.set_flags(flags);
 }
 
 pub fn step(self: *Cpu) !void {
@@ -3959,7 +4134,7 @@ pub fn step(self: *Cpu) !void {
     self.exec_inst();
 }
 
-pub inline fn print(self: *Cpu) void {
+pub fn print(self: *Cpu) void {
     std.log.debug(
         \\
         \\Registers
@@ -3970,7 +4145,7 @@ pub inline fn print(self: *Cpu) void {
         \\h  = {}
         \\l  = {}
         \\a  = {}
-        \\f  = {}
+        \\f  = {b:0>8}
         \\bc = {} 
         \\de = {} 
         \\hl = {} 
@@ -3978,20 +4153,20 @@ pub inline fn print(self: *Cpu) void {
         \\pc = 0x{X:0>4} 
         \\sp = 0x{X:0>4} 
     , .{
-        self.registers.get(R.b),
-        self.registers.get(R.c),
-        self.registers.get(R.d),
-        self.registers.get(R.e),
-        self.registers.get(R.h),
-        self.registers.get(R.l),
-        self.registers.get(R.a),
-        self.registers.get(R.f),
+        self.registers.get(.b),
+        self.registers.get(.c),
+        self.registers.get(.d),
+        self.registers.get(.e),
+        self.registers.get(.h),
+        self.registers.get(.l),
+        self.registers.get(.a),
+        self.registers.get(.f),
         self.registers.get_bc(),
         self.registers.get_de(),
         self.registers.get_hl(),
         self.registers.get_af(),
         self.pc,
-        0,
+        self.sp,
     });
 }
 

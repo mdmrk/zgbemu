@@ -14,7 +14,7 @@ pub fn init(cartridge: *Cartridge) Bus {
 }
 
 pub inline fn read_byte(self: *Bus, address: u16) u8 {
-    return self.memory[address];
+    return self.cartridge.read_byte(address);
 }
 
 pub inline fn read(self: *Bus, address: u16, bytes: u8) []const u8 {
