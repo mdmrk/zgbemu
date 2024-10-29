@@ -11,6 +11,10 @@ alloc: Allocator,
 filename: []const u8,
 header: CartridgeHeader,
 rom: []u8,
+ram: []u8,
+rom_bank: u8,
+ram_bank: u8,
+ram_enabled: bool,
 
 const CartridgeType = enum(u8) {
     ROM_ONLY = 0x00,
@@ -145,15 +149,28 @@ pub fn verify(self: *Cartridge) !void {
     try self.header.verify(self.rom);
 }
 
-pub inline fn read_byte(self: *Cartridge, address: u16) u8 {
-    return self.rom[address];
+pub inline fn read(self: *Cartridge, address: u16) u8 {
+    return switch (address) {
+        0x0000...0x3FFF => self.rom[address],
+        0x4000...0x7FFF => {
+            const real_addr = address - 0x4000 + (self.rom_bank * 0x4000);
+            return self.rom[real_addr];
+        },
+        0xA000...0xBFFF => {
+            if (self.ram_enabled) {
+                const ram_addr = address - 0xA000 + (self.ram_bank * 0x2000);
+                return self.ram[ram_addr];
+            }
+            return 0xFF;
+        },
+        else => unreachable,
+    };
 }
 
-pub inline fn read(self: *Cartridge, address: u16, bytes: u8) []const u8 {
-    return self.rom[address..(address + bytes)];
-}
-
-pub inline fn write(self: *Cartridge, address: u16, value: u8) void {
+pub inline fn write(self: *Cartridge, address: u16, value: u8) !void {
+    if (address < 0x4000) {
+        return error.ReadOnlyMemory;
+    }
     self.rom[address] = value;
 }
 

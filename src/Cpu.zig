@@ -1,4 +1,5 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 const Bus = @import("Bus.zig");
 
 const Cpu = @This();
@@ -3816,7 +3817,9 @@ const R8Register = enum(u3) {
     a = 7,
 };
 
+alloc: Allocator,
 bus: *Bus,
+stack: std.ArrayList(u16),
 registers: struct {
     const Self = @This();
 
@@ -3893,19 +3896,18 @@ registers: struct {
         self.set(.f, result);
     }
 },
-pc: u16,
-sp: u16,
 clock: Clock,
 cur_opcode: u8,
 halted: bool,
-stepping: bool,
+pc: u16,
+sp: u16,
 
 inline fn two_u8_to_u16(upper: u8, lower: u8) u16 {
     return (@as(u16, @intCast(upper)) << 8) | @as(u16, lower);
 }
 
 fn fetch_inst(self: *Cpu) void {
-    const opcode: u8 = self.bus.read_byte(self.pc);
+    const opcode: u8 = self.bus.read(self.pc);
     self.pc += 1;
     self.cur_opcode = opcode;
 }
@@ -3914,11 +3916,13 @@ fn exec_inst(self: *Cpu) void {
     const opcode = self.cur_opcode;
     const op = fetch_opcode(self.cur_opcode);
     const operants_size = op.bytes - 1;
-    var operands: []const u8 = undefined;
+    var operands: [2]u8 = undefined;
     var flags: Flags = self.registers.get_flags();
 
     if (operants_size > 0) {
-        operands = self.bus.read(self.pc, operants_size);
+        inline for (0..operants_size) |i| {
+            operands[i] = self.bus.read(self.pc + i);
+        }
         self.pc += operants_size;
     }
 
@@ -3937,6 +3941,26 @@ fn exec_inst(self: *Cpu) void {
     });
 
     switch (op.mnemonic) {
+        .CALL => {
+            const address = two_u8_to_u16(operands[1], operands[0]);
+            const is_conditional: bool = opcode & 7 == 4;
+            if (is_conditional) {
+                const condition_is_met: bool = switch (opcode) {
+                    0o304 => flags.zero == false,
+                    0o314 => flags.zero == true,
+                    0o324 => flags.carry == false,
+                    0o334 => flags.carry == true,
+                    else => unreachable,
+                };
+                if (condition_is_met) {
+                    self.stack.append(self.pc) catch unreachable;
+                    self.pc = address;
+                }
+            } else {
+                self.stack.append(self.pc) catch unreachable;
+                self.pc = address;
+            }
+        },
         .DI => {
             self.halted = false;
         },
@@ -3996,7 +4020,7 @@ fn exec_inst(self: *Cpu) void {
                 0o176, // LD r8, [HL]
                 => {
                     const dst: R8Register = @enumFromInt(opcode >> 3 & 7);
-                    self.registers.set(dst, self.bus.read_byte(self.registers.get_hl()));
+                    self.registers.set(dst, self.bus.read(self.registers.get_hl()));
                 },
                 0o006,
                 0o016,
@@ -4042,6 +4066,18 @@ fn exec_inst(self: *Cpu) void {
                 else => unreachable,
             }
         },
+        .LDH => {
+            const address = @as(u16, @intCast(operands[0])) + 0xFF00;
+            switch (opcode >> 3) {
+                0o34 => {
+                    self.bus.write(address, self.registers.get(.a));
+                },
+                0o36 => {
+                    self.registers.set(.a, self.bus.read(address));
+                },
+                else => unreachable,
+            }
+        },
         .NOP => {},
         .ADC, .SUB, .SBC, .AND, .XOR, .OR, .CP => {
             const a = self.registers.get(.a);
@@ -4052,7 +4088,7 @@ fn exec_inst(self: *Cpu) void {
                 => self.registers.get(@as(R8Register, @enumFromInt(lower))),
                 6,
                 => if (opcode >> 6 & 7 == 2)
-                    self.bus.read_byte(self.registers.get_hl()) // OP A, [HL]
+                    self.bus.read(self.registers.get_hl()) // OP A, [HL]
                 else
                     operands[0], // OP A, n8
                 else => unreachable,
@@ -4170,17 +4206,22 @@ pub fn print(self: *Cpu) void {
     });
 }
 
-pub fn init(bus: *Bus) Cpu {
+pub fn init(alloc: Allocator, bus: *Bus) Cpu {
     return .{
+        .alloc = alloc,
         .bus = bus,
+        .stack = std.ArrayList(u16).init(alloc),
         .registers = .{
             .r8 = [_]u8{0} ** 8,
         },
         .clock = Clock{},
         .cur_opcode = undefined,
         .halted = false,
-        .stepping = false,
         .pc = 0x100,
         .sp = 0,
     };
+}
+
+pub fn deinit(self: *Cpu) void {
+    self.stack.deinit();
 }

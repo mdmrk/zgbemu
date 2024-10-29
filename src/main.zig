@@ -2,7 +2,7 @@ const std = @import("std");
 const Cartridge = @import("Cartridge.zig");
 const Cpu = @import("Cpu.zig");
 const Bus = @import("Bus.zig");
-const c = @cImport({
+const sdl = @cImport({
     @cInclude("SDL3/SDL.h");
 });
 
@@ -29,11 +29,11 @@ pub fn main() !void {
 
     var bus = Bus.init(&cardtrige);
 
-    var cpu = Cpu.init(&bus);
+    var cpu = Cpu.init(alloc, &bus);
+    defer cpu.deinit();
 
     while (Context.running) {
         try cpu.step();
         cpu.print();
-        _ = try std.io.getStdIn().reader().readByte();
     }
 }
