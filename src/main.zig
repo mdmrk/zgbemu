@@ -29,11 +29,11 @@ pub fn main() !void {
 
     var bus = Bus.init(&cardtrige);
 
-    var cpu = Cpu.init(alloc, &bus);
-    defer cpu.deinit();
+    var cpu = Cpu.init(&bus);
 
     while (Context.running) {
-        try cpu.step();
         cpu.print();
+        try cpu.step();
+        // _ = try std.io.getStdIn().reader().readByte();
     }
 }

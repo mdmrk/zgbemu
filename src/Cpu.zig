@@ -3817,9 +3817,7 @@ const R8Register = enum(u3) {
     a = 7,
 };
 
-alloc: Allocator,
 bus: *Bus,
-stack: std.ArrayList(u16),
 registers: struct {
     const Self = @This();
 
@@ -3898,6 +3896,7 @@ registers: struct {
 },
 clock: Clock,
 cur_opcode: u8,
+ime: bool,
 halted: bool,
 pc: u16,
 sp: u16,
@@ -3916,11 +3915,12 @@ fn exec_inst(self: *Cpu) void {
     const opcode = self.cur_opcode;
     const op = fetch_opcode(self.cur_opcode);
     const operants_size = op.bytes - 1;
-    var operands: [2]u8 = undefined;
+    var operands: [2]u8 = .{ 0, 0 };
     var flags: Flags = self.registers.get_flags();
 
     if (operants_size > 0) {
-        inline for (0..operants_size) |i| {
+        var i: u16 = 0;
+        while (i < operants_size) : (i += 1) {
             operands[i] = self.bus.read(self.pc + i);
         }
         self.pc += operants_size;
@@ -3928,16 +3928,22 @@ fn exec_inst(self: *Cpu) void {
 
     std.log.debug(
         \\
-        \\Instruction
+        \\[!] Instruction
         \\0x{X:0>2} 0o{o:0>3}
         \\name {s}
         \\size {}
+        \\operands u8  0x{X:0>2} {d}
+        \\operands u16 0x{X:0>4} {d}
         \\
     , .{
         opcode,
         opcode,
         @tagName(op.mnemonic),
         op.bytes,
+        operands,
+        operands,
+        two_u8_to_u16(operands[1], operands[0]),
+        two_u8_to_u16(operands[1], operands[0]),
     });
 
     switch (op.mnemonic) {
@@ -3953,11 +3959,15 @@ fn exec_inst(self: *Cpu) void {
                     else => unreachable,
                 };
                 if (condition_is_met) {
-                    self.stack.append(self.pc) catch unreachable;
+                    self.bus.write(self.sp -% 1, @intCast(self.pc >> 8));
+                    self.bus.write(self.sp -% 2, @intCast(self.pc & 0xFF));
+                    self.sp -%= 2;
                     self.pc = address;
                 }
             } else {
-                self.stack.append(self.pc) catch unreachable;
+                self.bus.write(self.sp -% 1, @intCast(self.pc >> 8));
+                self.bus.write(self.sp -% 2, @intCast(self.pc & 0xFF));
+                self.sp -%= 2;
                 self.pc = address;
             }
         },
@@ -3984,6 +3994,80 @@ fn exec_inst(self: *Cpu) void {
             } else {
                 self.pc = address;
             }
+        },
+        .JR => {
+            const offset: i16 = @intCast(@as(i8, @bitCast(operands[0])));
+            const address: u16 = @intCast(@as(i16, @intCast(self.pc)) + offset);
+            const is_conditional: bool = opcode >> 3 & 7 != 3;
+            if (is_conditional) {
+                const condition_is_met: bool = switch (opcode) {
+                    0o042 => flags.zero == false,
+                    0o052 => flags.zero == true,
+                    0o062 => flags.carry == false,
+                    0o072 => flags.carry == true,
+                    else => unreachable,
+                };
+                if (condition_is_met) {
+                    self.pc = address;
+                }
+            } else {
+                self.pc = address;
+            }
+        },
+        .RET => {
+            const is_conditional: bool = opcode & 7 == 0;
+
+            if (is_conditional) {
+                const condition_is_met: bool = switch (opcode) {
+                    0o300 => flags.zero == false,
+                    0o310 => flags.zero == true,
+                    0o320 => flags.carry == false,
+                    0o330 => flags.carry == true,
+                    else => unreachable,
+                };
+
+                if (condition_is_met) {
+                    const low_byte = self.bus.read(self.sp);
+                    const high_byte = self.bus.read(self.sp +% 1);
+                    const return_addr = (@as(u16, high_byte) << 8) | low_byte;
+
+                    self.sp +%= 2;
+                    self.pc = return_addr;
+                }
+            } else {
+                const low_byte = self.bus.read(self.sp);
+                const high_byte = self.bus.read(self.sp +% 1);
+                const return_addr = (@as(u16, high_byte) << 8) | low_byte;
+
+                self.sp +%= 2;
+                self.pc = return_addr;
+            }
+        },
+        .PUSH => {
+            const value = switch (opcode) {
+                0o305 => self.registers.get_bc(),
+                0o325 => self.registers.get_de(),
+                0o345 => self.registers.get_hl(),
+                0o365 => self.registers.get_af(),
+                else => unreachable,
+            };
+            self.bus.write(self.sp -% 1, @intCast(value >> 8));
+            self.bus.write(self.sp -% 2, @intCast(value & 0xFF));
+            self.sp -%= 2;
+        },
+        .POP => {
+            const low_byte = self.bus.read(self.sp);
+            const high_byte = self.bus.read(self.sp +% 1);
+            const value = (@as(u16, high_byte) << 8) | low_byte;
+
+            switch (opcode) {
+                0o305 => self.registers.set_bc(value),
+                0o325 => self.registers.set_de(value),
+                0o345 => self.registers.set_hl(value),
+                0o365 => self.registers.set_af(value),
+                else => unreachable,
+            }
+            self.sp +%= 2;
         },
         .LD => {
             switch (opcode) {
@@ -4063,6 +4147,41 @@ fn exec_inst(self: *Cpu) void {
                     const address: u16 = two_u8_to_u16(operands[1], operands[0]);
                     self.bus.write(address, self.registers.get(.a));
                 },
+                else => unreachable,
+            }
+        },
+        .INC => {
+            switch (opcode) {
+                0o004,
+                0o014,
+                0o024,
+                0o034,
+                0o044,
+                0o054,
+                0o074, // INC r8
+                => {
+                    const value: u8 = self.registers.get(@as(R8Register, @enumFromInt(opcode & 7)));
+                    const inc = value +% 1;
+                    flags.zero = inc == 0;
+                    flags.subtract = false;
+                    flags.half_carry = ((value & 0xF) + (1 & 0xF) + @as(u8, @intFromBool(flags.carry))) > 0xF;
+                    self.registers.set(@as(R8Register, @enumFromInt(opcode & 7)), inc);
+                },
+                0o064,
+                // INC, [HL]
+                => {
+                    const address = self.registers.get_hl();
+                    const value: u8 = self.bus.read(address);
+                    const inc = value +% 1;
+                    self.bus.write(address, inc);
+                    flags.zero = inc == 0;
+                    flags.subtract = false;
+                    flags.half_carry = ((value & 0xF) + (1 & 0xF) + @as(u8, @intFromBool(flags.carry))) > 0xF;
+                },
+                0o003 => self.registers.set_bc(self.registers.get_bc() +% 1),
+                0o023 => self.registers.set_bc(self.registers.get_de() +% 1),
+                0o043 => self.registers.set_bc(self.registers.get_hl() +% 1),
+                0o063 => self.sp += 1,
                 else => unreachable,
             }
         },
@@ -4172,8 +4291,7 @@ pub fn step(self: *Cpu) !void {
 
 pub fn print(self: *Cpu) void {
     std.log.debug(
-        \\
-        \\Registers
+        \\[!] Registers
         \\b  = {}
         \\c  = {}
         \\d  = {}
@@ -4188,6 +4306,7 @@ pub fn print(self: *Cpu) void {
         \\af = {} 
         \\pc = 0x{X:0>4} 
         \\sp = 0x{X:0>4} 
+        \\
     , .{
         self.registers.get(.b),
         self.registers.get(.c),
@@ -4206,19 +4325,18 @@ pub fn print(self: *Cpu) void {
     });
 }
 
-pub fn init(alloc: Allocator, bus: *Bus) Cpu {
+pub fn init(bus: *Bus) Cpu {
     return .{
-        .alloc = alloc,
         .bus = bus,
-        .stack = std.ArrayList(u16).init(alloc),
         .registers = .{
             .r8 = [_]u8{0} ** 8,
         },
         .clock = Clock{},
         .cur_opcode = undefined,
+        .ime = false,
         .halted = false,
         .pc = 0x100,
-        .sp = 0,
+        .sp = 0xFFFE,
     };
 }
 

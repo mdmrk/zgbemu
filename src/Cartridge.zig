@@ -12,8 +12,8 @@ filename: []const u8,
 header: CartridgeHeader,
 rom: []u8,
 ram: []u8,
-rom_bank: u8,
-ram_bank: u8,
+rom_bank: u16,
+ram_bank: u16,
 ram_enabled: bool,
 
 const CartridgeType = enum(u8) {
@@ -46,6 +46,18 @@ const CartridgeType = enum(u8) {
     HuC3 = 0xFE,
     HuC1_RAM_BATTERY = 0xFF,
 };
+
+fn get_ram_size(ram_type: u8) usize {
+    return switch (ram_type) {
+        0x00 => 0, // No RAM
+        0x01 => 0, // Unused 12
+        0x02 => 8 * 1024, // 1 bank
+        0x03 => 32 * 1024, // 4 banks of 8 KiB each
+        0x04 => 128 * 1024, // 16 banks of 8 KiB each
+        0x05 => 64 * 1024, // 8 banks of 8 KiB each
+        else => unreachable,
+    };
+}
 
 const CartridgeHeader = struct {
     entry_point: [4]u8,
@@ -92,41 +104,44 @@ pub fn load(self: *Cartridge, path: []const u8) !void {
     const file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
     const rom = try file.readToEndAlloc(self.alloc, std.math.maxInt(usize));
+    const header: CartridgeHeader = .{
+        .entry_point = rom[0x100..0x104].*,
+        .nintendo_logo = rom[0x104..0x134].*,
+        .title = rom[0x134..0x144].*,
+        .licensee_code = rom[0x144..0x146].*,
+        .sgb_flag = rom[0x146],
+        .cartridge_type = rom[0x147],
+        .rom_size = rom[0x148],
+        .ram_size = rom[0x149],
+        .destination_code = rom[0x14A],
+        .old_licensee_code = rom[0x14B],
+        .mask_rom_version = rom[0x14C],
+        .header_checksum = rom[0x14D],
+        .global_checksum = rom[0x14E..0x150].*,
+    };
+    const ram = if (header.ram_size > 0) try self.alloc.alloc(u8, get_ram_size(header.ram_size)) else undefined;
 
     self.filename = std.fs.path.basename(path);
     self.rom = rom;
-    self.header = CartridgeHeader{
-        .entry_point = self.rom[0x100..0x104].*,
-        .nintendo_logo = self.rom[0x104..0x134].*,
-        .title = self.rom[0x134..0x144].*,
-        .licensee_code = self.rom[0x144..0x146].*,
-        .sgb_flag = self.rom[0x146],
-        .cartridge_type = self.rom[0x147],
-        .rom_size = self.rom[0x148],
-        .ram_size = self.rom[0x149],
-        .destination_code = self.rom[0x14A],
-        .old_licensee_code = self.rom[0x14B],
-        .mask_rom_version = self.rom[0x14C],
-        .header_checksum = self.rom[0x14D],
-        .global_checksum = self.rom[0x14E..0x150].*,
-    };
+    self.ram = ram;
+    self.header = header;
     self.header.title[15] = 0;
     std.log.debug(
         \\
         \\Loaded ROM
         \\filename          {s} 
-        \\entry_point       {X:0>4} 
+        \\entry_point       0x{X:0>2} 
         \\title             {s}
         \\licensee_code     {d}
         \\sgb_flag          {}
         \\cartridge_type    {s}
         \\rom_size          {}
-        \\ram_size          {}
+        \\ram_size          {} ({}B)
         \\destination_code  {}
         \\old_licensee_code {}
         \\mask_rom_version  {}
         \\header_checksum   {}
-        \\global_checksum   {X}
+        \\global_checksum   0x{X}
         \\
     , .{
         self.filename,
@@ -137,6 +152,7 @@ pub fn load(self: *Cartridge, path: []const u8) !void {
         @tagName(@as(CartridgeType, @enumFromInt(self.header.cartridge_type))),
         self.header.rom_size,
         self.header.ram_size,
+        get_ram_size(self.header.ram_size),
         self.header.destination_code,
         self.header.old_licensee_code,
         self.header.mask_rom_version,
@@ -180,9 +196,14 @@ pub fn init(alloc: Allocator) Cartridge {
         .filename = undefined,
         .header = undefined,
         .rom = undefined,
+        .ram = undefined,
+        .rom_bank = undefined,
+        .ram_bank = undefined,
+        .ram_enabled = undefined,
     };
 }
 
 pub fn deinit(self: *Cartridge) void {
     self.alloc.free(self.rom);
+    self.alloc.free(self.ram);
 }
