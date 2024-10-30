@@ -127,86 +127,36 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 3,
             .cycles = &[_]u8{12},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .BC,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0x02 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .BC,
-                    .immediate = false,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x03 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .BC,
-                    .immediate = true,
-                },
-            },
         },
         0x04 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x05 => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x06 => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x07 => Op{
             .mnemonic = .RLCA,
@@ -219,102 +169,42 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 3,
             .cycles = &[_]u8{20},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = false,
-                },
-                .{
-                    .name = .SP,
-                    .immediate = true,
-                },
-            },
         },
         0x09 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-                .{
-                    .name = .BC,
-                    .immediate = true,
-                },
-            },
         },
         0x0A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .BC,
-                    .immediate = false,
-                },
-            },
         },
         0x0B => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .BC,
-                    .immediate = true,
-                },
-            },
         },
         0x0C => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x0D => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x0E => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x0F => Op{
             .mnemonic = .RRCA,
@@ -327,99 +217,42 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 2,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x11 => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{12},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .DE,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0x12 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .DE,
-                    .immediate = false,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x13 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .DE,
-                    .immediate = true,
-                },
-            },
         },
         0x14 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x15 => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x16 => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x17 => Op{
             .mnemonic = .RLA,
@@ -432,98 +265,42 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 2,
             .cycles = &[_]u8{12},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .e8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x19 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-                .{
-                    .name = .DE,
-                    .immediate = true,
-                },
-            },
         },
         0x1A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .DE,
-                    .immediate = false,
-                },
-            },
         },
         0x1B => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .DE,
-                    .immediate = true,
-                },
-            },
         },
         0x1C => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x1D => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x1E => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x1F => Op{
             .mnemonic = .RRA,
@@ -536,103 +313,42 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 2,
             .cycles = &[_]u8{ 12, 8 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .NZ,
-                    .immediate = true,
-                },
-                .{
-                    .name = .e8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x21 => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{12},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0x22 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x23 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-            },
         },
         0x24 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x25 => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x26 => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x27 => Op{
             .mnemonic = .DAA,
@@ -645,102 +361,42 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 2,
             .cycles = &[_]u8{ 12, 8 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .Z,
-                    .immediate = true,
-                },
-                .{
-                    .name = .e8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x29 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-            },
         },
         0x2A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x2B => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-            },
         },
         0x2C => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x2D => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x2E => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x2F => Op{
             .mnemonic = .CPL,
@@ -753,103 +409,42 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 2,
             .cycles = &[_]u8{ 12, 8 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .NC,
-                    .immediate = true,
-                },
-                .{
-                    .name = .e8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x31 => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{12},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .SP,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0x32 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x33 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .SP,
-                    .immediate = true,
-                },
-            },
         },
         0x34 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{12},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x35 => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{12},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x36 => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{12},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x37 => Op{
             .mnemonic = .SCF,
@@ -862,102 +457,42 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 2,
             .cycles = &[_]u8{ 12, 8 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .e8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x39 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-                .{
-                    .name = .SP,
-                    .immediate = true,
-                },
-            },
         },
         0x3A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x3B => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .SP,
-                    .immediate = true,
-                },
-            },
         },
         0x3C => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x3D => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x3E => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0x3F => Op{
             .mnemonic = .CCF,
@@ -970,864 +505,324 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x41 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x42 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x43 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x44 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x45 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x46 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x47 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x48 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x49 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x4A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x4B => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x4C => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x4D => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x4E => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x4F => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x50 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x51 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x52 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x53 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x54 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x55 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x56 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x57 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x58 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x59 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x5A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x5B => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x5C => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x5D => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x5E => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x5F => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x60 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x61 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x62 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x63 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x64 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x65 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x66 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x67 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x68 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x69 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x6A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x6B => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x6C => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x6D => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x6E => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x6F => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x70 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x71 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x72 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x73 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x74 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x75 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x76 => Op{
             .mnemonic = .HALT,
@@ -1840,1292 +835,492 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x78 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x79 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x7A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x7B => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x7C => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x7D => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x7E => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x7F => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x80 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x81 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x82 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x83 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x84 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x85 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x86 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x87 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x88 => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x89 => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x8A => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x8B => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x8C => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x8D => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x8E => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x8F => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x90 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x91 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x92 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x93 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x94 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x95 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x96 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x97 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0x98 => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0x99 => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0x9A => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0x9B => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0x9C => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0x9D => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0x9E => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0x9F => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0xA0 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0xA1 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0xA2 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0xA3 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0xA4 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0xA5 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0xA6 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0xA7 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0xA8 => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0xA9 => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0xAA => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0xAB => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0xAC => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0xAD => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0xAE => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0xAF => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0xB0 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0xB1 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0xB2 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0xB3 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0xB4 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0xB5 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0xB6 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0xB7 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0xB8 => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .B,
-                    .immediate = true,
-                },
-            },
         },
         0xB9 => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0xBA => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .D,
-                    .immediate = true,
-                },
-            },
         },
         0xBB => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .E,
-                    .immediate = true,
-                },
-            },
         },
         0xBC => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .H,
-                    .immediate = true,
-                },
-            },
         },
         0xBD => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .L,
-                    .immediate = true,
-                },
-            },
         },
         0xBE => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = false,
-                },
-            },
         },
         0xBF => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0xC0 => Op{
             .mnemonic = .RET,
             .bytes = 1,
             .cycles = &[_]u8{ 20, 8 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .NZ,
-                    .immediate = true,
-                },
-            },
         },
         0xC1 => Op{
             .mnemonic = .POP,
             .bytes = 1,
             .cycles = &[_]u8{12},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .BC,
-                    .immediate = true,
-                },
-            },
         },
         0xC2 => Op{
             .mnemonic = .JP,
             .bytes = 3,
             .cycles = &[_]u8{ 16, 12 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .NZ,
-                    .immediate = true,
-                },
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0xC3 => Op{
             .mnemonic = .JP,
             .bytes = 3,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0xC4 => Op{
             .mnemonic = .CALL,
             .bytes = 3,
             .cycles = &[_]u8{ 24, 12 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .NZ,
-                    .immediate = true,
-                },
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0xC5 => Op{
             .mnemonic = .PUSH,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .BC,
-                    .immediate = true,
-                },
-            },
         },
         0xC6 => Op{
             .mnemonic = .ADD,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0xC7 => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .@"$00",
-                    .immediate = true,
-                },
-            },
         },
         0xC8 => Op{
             .mnemonic = .RET,
             .bytes = 1,
             .cycles = &[_]u8{ 20, 8 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .Z,
-                    .immediate = true,
-                },
-            },
         },
         0xC9 => Op{
             .mnemonic = .RET,
@@ -3138,17 +1333,6 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 3,
             .cycles = &[_]u8{ 16, 12 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .Z,
-                    .immediate = true,
-                },
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0xCB => Op{
             .mnemonic = .PREFIX,
@@ -3161,100 +1345,42 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 3,
             .cycles = &[_]u8{ 24, 12 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .Z,
-                    .immediate = true,
-                },
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0xCD => Op{
             .mnemonic = .CALL,
             .bytes = 3,
             .cycles = &[_]u8{24},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0xCE => Op{
             .mnemonic = .ADC,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0xCF => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .@"$08",
-                    .immediate = true,
-                },
-            },
         },
         0xD0 => Op{
             .mnemonic = .RET,
             .bytes = 1,
             .cycles = &[_]u8{ 20, 8 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .NC,
-                    .immediate = true,
-                },
-            },
         },
         0xD1 => Op{
             .mnemonic = .POP,
             .bytes = 1,
             .cycles = &[_]u8{12},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .DE,
-                    .immediate = true,
-                },
-            },
         },
         0xD2 => Op{
             .mnemonic = .JP,
             .bytes = 3,
             .cycles = &[_]u8{ 16, 12 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .NC,
-                    .immediate = true,
-                },
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0xD3 => Op{
             .mnemonic = .ILLEGAL_D3,
@@ -3267,70 +1393,30 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 3,
             .cycles = &[_]u8{ 24, 12 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .NC,
-                    .immediate = true,
-                },
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0xD5 => Op{
             .mnemonic = .PUSH,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .DE,
-                    .immediate = true,
-                },
-            },
         },
         0xD6 => Op{
             .mnemonic = .SUB,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0xD7 => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .@"$10",
-                    .immediate = true,
-                },
-            },
         },
         0xD8 => Op{
             .mnemonic = .RET,
             .bytes = 1,
             .cycles = &[_]u8{ 20, 8 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-            },
         },
         0xD9 => Op{
             .mnemonic = .RETI,
@@ -3343,17 +1429,6 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 3,
             .cycles = &[_]u8{ 16, 12 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0xDB => Op{
             .mnemonic = .ILLEGAL_DB,
@@ -3366,17 +1441,6 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 3,
             .cycles = &[_]u8{ 24, 12 },
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = true,
-                },
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = true,
-                },
-            },
         },
         0xDD => Op{
             .mnemonic = .ILLEGAL_DD,
@@ -3389,74 +1453,30 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0xDF => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .@"$18",
-                    .immediate = true,
-                },
-            },
         },
         0xE0 => Op{
             .mnemonic = .LDH,
             .bytes = 2,
             .cycles = &[_]u8{12},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .a8,
-                    .bytes = 1,
-                    .immediate = false,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0xE1 => Op{
             .mnemonic = .POP,
             .bytes = 1,
             .cycles = &[_]u8{12},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-            },
         },
         0xE2 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .C,
-                    .immediate = false,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0xE3 => Op{
             .mnemonic = .ILLEGAL_E3,
@@ -3475,87 +1495,36 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-            },
         },
         0xE6 => Op{
             .mnemonic = .AND,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0xE7 => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .@"$20",
-                    .immediate = true,
-                },
-            },
         },
         0xE8 => Op{
             .mnemonic = .ADD,
             .bytes = 2,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .SP,
-                    .immediate = true,
-                },
-                .{
-                    .name = .e8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0xE9 => Op{
             .mnemonic = .JP,
             .bytes = 1,
             .cycles = &[_]u8{4},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-            },
         },
         0xEA => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{16},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = false,
-                },
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-            },
         },
         0xEB => Op{
             .mnemonic = .ILLEGAL_EB,
@@ -3580,74 +1549,30 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0xEF => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .@"$28",
-                    .immediate = true,
-                },
-            },
         },
         0xF0 => Op{
             .mnemonic = .LDH,
             .bytes = 2,
             .cycles = &[_]u8{12},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .a8,
-                    .bytes = 1,
-                    .immediate = false,
-                },
-            },
         },
         0xF1 => Op{
             .mnemonic = .POP,
             .bytes = 1,
             .cycles = &[_]u8{12},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .AF,
-                    .immediate = true,
-                },
-            },
         },
         0xF2 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .C,
-                    .immediate = false,
-                },
-            },
         },
         0xF3 => Op{
             .mnemonic = .DI,
@@ -3666,95 +1591,36 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .AF,
-                    .immediate = true,
-                },
-            },
         },
         0xF6 => Op{
             .mnemonic = .OR,
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0xF7 => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .@"$30",
-                    .immediate = true,
-                },
-            },
         },
         0xF8 => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{12},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-                .{
-                    .name = .SP,
-                    .immediate = true,
-                },
-                .{
-                    .name = .e8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0xF9 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .SP,
-                    .immediate = true,
-                },
-                .{
-                    .name = .HL,
-                    .immediate = true,
-                },
-            },
         },
         0xFA => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{16},
             .immediate = false,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .a16,
-                    .bytes = 2,
-                    .immediate = false,
-                },
-            },
         },
         0xFB => Op{
             .mnemonic = .EI,
@@ -3779,29 +1645,12 @@ fn fetch_opcode(opcode: u8) Op {
             .bytes = 2,
             .cycles = &[_]u8{8},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .A,
-                    .immediate = true,
-                },
-                .{
-                    .name = .n8,
-                    .bytes = 1,
-                    .immediate = true,
-                },
-            },
         },
         0xFF => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
             .immediate = true,
-            .operands = &[_]Operand{
-                .{
-                    .name = .@"$38",
-                    .immediate = true,
-                },
-            },
         },
     };
 }
