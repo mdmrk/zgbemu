@@ -183,7 +183,7 @@ pub inline fn read(self: *Cartridge, address: u16) u8 {
     };
 }
 
-pub inline fn write(self: *Cartridge, address: u16, value: u8) !void {
+pub inline fn write(self: *Cartridge, address: u16, value: u8) void {
     if (address >= 0x2000 and address <= 0x3FFF) {
         self.rom_bank = value;
     }

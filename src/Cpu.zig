@@ -1845,15 +1845,15 @@ fn exec_inst(self: *Cpu) void {
             }
         },
         .JR => {
-            const offset: i16 = @intCast(@as(i8, @bitCast(operands[0])));
-            const address: u16 = @intCast(@as(i16, @intCast(self.pc)) + offset);
+            const offset: i8 = @bitCast(operands[0]);
+            const address: u16 = self.pc +% @as(u16, @bitCast(@as(i16, @intCast(offset))));
             const is_conditional: bool = opcode >> 3 & 7 != 3;
             if (is_conditional) {
                 const condition_is_met: bool = switch (opcode) {
-                    0o042 => flags.zero == false,
-                    0o052 => flags.zero == true,
-                    0o062 => flags.carry == false,
-                    0o072 => flags.carry == true,
+                    0o040 => flags.zero == false,
+                    0o050 => flags.zero == true,
+                    0o060 => flags.carry == false,
+                    0o070 => flags.carry == true,
                     else => unreachable,
                 };
                 if (condition_is_met) {
@@ -1910,13 +1910,19 @@ fn exec_inst(self: *Cpu) void {
             const value = (@as(u16, high_byte) << 8) | low_byte;
 
             switch (opcode) {
-                0o305 => self.registers.set_bc(value),
-                0o325 => self.registers.set_de(value),
-                0o345 => self.registers.set_hl(value),
-                0o365 => self.registers.set_af(value),
+                0o301 => self.registers.set_bc(value),
+                0o321 => self.registers.set_de(value),
+                0o341 => self.registers.set_hl(value),
+                0o361 => self.registers.set_af(value),
                 else => unreachable,
             }
             self.sp +%= 2;
+            if (opcode == 0o361) {
+                flags.zero = (low_byte & (1 << 7)) != 0;
+                flags.subtract = (low_byte & (1 << 6)) != 0;
+                flags.half_carry = (low_byte & (1 << 5)) != 0;
+                flags.carry = (low_byte & (1 << 4)) != 0;
+            }
         },
         .LD => {
             switch (opcode) {
@@ -1942,7 +1948,8 @@ fn exec_inst(self: *Cpu) void {
                 0o160...0o167, // LD [HL], r8
                 => {
                     const src: R8Register = @enumFromInt(opcode & 7);
-                    self.registers.set_hl(self.registers.get(src));
+                    const address = self.registers.get_hl();
+                    self.bus.write(address, (self.registers.get(src)));
                 },
                 0o106,
                 0o116,
@@ -1992,10 +1999,6 @@ fn exec_inst(self: *Cpu) void {
                     const value: u16 = two_u8_to_u16(operands[1], operands[0]);
                     self.sp = value;
                 },
-                0o352 => {
-                    const address: u16 = two_u8_to_u16(operands[1], operands[0]);
-                    self.bus.write(address, self.registers.get(.a));
-                },
                 0o002 => {
                     const value: u8 = self.registers.get(.a);
                     const address: u16 = self.registers.get_bc();
@@ -2036,6 +2039,22 @@ fn exec_inst(self: *Cpu) void {
                     self.registers.set_hl(self.registers.get_hl() - 1);
                     self.registers.set(.a, value);
                 },
+                0o342 => {
+                    const address: u16 = 0xFF00 + @as(u16, @intCast(self.registers.get(.c)));
+                    self.bus.write(address, self.registers.get(.a));
+                },
+                0o352 => {
+                    const address: u16 = two_u8_to_u16(operands[1], operands[0]);
+                    self.bus.write(address, self.registers.get(.a));
+                },
+                0o362 => {
+                    const address: u16 = 0xFF00 + @as(u16, @intCast(self.registers.get(.c)));
+                    self.registers.set(.a, self.bus.read(address));
+                },
+                0o372 => {
+                    const address: u16 = two_u8_to_u16(operands[1], operands[0]);
+                    self.registers.set(.a, self.bus.read(address));
+                },
                 else => unreachable,
             }
         },
@@ -2054,7 +2073,7 @@ fn exec_inst(self: *Cpu) void {
                     const inc = value +% 1;
                     flags.zero = inc == 0;
                     flags.subtract = false;
-                    flags.half_carry = ((value & 0xF) + (1 & 0xF) + @as(u8, @intFromBool(flags.carry))) > 0xF;
+                    flags.half_carry = (value & 0xF) == 0xF;
                     self.registers.set(@as(R8Register, @enumFromInt(reg)), inc);
                 },
                 0o064,
@@ -2066,22 +2085,58 @@ fn exec_inst(self: *Cpu) void {
                     self.bus.write(address, inc);
                     flags.zero = inc == 0;
                     flags.subtract = false;
-                    flags.half_carry = ((value & 0xF) + (1 & 0xF) + @as(u8, @intFromBool(flags.carry))) > 0xF;
+                    flags.half_carry = (value & 0xF) == 0xF;
                 },
                 0o003 => self.registers.set_bc(self.registers.get_bc() +% 1),
-                0o023 => self.registers.set_bc(self.registers.get_de() +% 1),
-                0o043 => self.registers.set_bc(self.registers.get_hl() +% 1),
+                0o023 => self.registers.set_de(self.registers.get_de() +% 1),
+                0o043 => self.registers.set_hl(self.registers.get_hl() +% 1),
                 0o063 => self.sp += 1,
+                else => unreachable,
+            }
+        },
+        .DEC => {
+            switch (opcode) {
+                0o005,
+                0o015,
+                0o025,
+                0o035,
+                0o045,
+                0o055,
+                0o075, // DEC, r8
+                => {
+                    const reg: u8 = (opcode >> 3 & 7);
+                    const value: u8 = self.registers.get(@as(R8Register, @enumFromInt(reg)));
+                    const dec = value -% 1;
+                    flags.zero = dec == 0;
+                    flags.subtract = true;
+                    flags.half_carry = (value & 0xF) == 0;
+                    self.registers.set(@as(R8Register, @enumFromInt(reg)), dec);
+                },
+                0o065,
+                // DEC, [HL]
+                => {
+                    const address = self.registers.get_hl();
+                    const value: u8 = self.bus.read(address);
+                    const dec = value -% 1;
+                    self.bus.write(address, dec);
+                    flags.zero = dec == 0;
+                    flags.subtract = true;
+                    flags.half_carry = (value & 0xF) == 0;
+                },
+                0o013 => self.registers.set_bc(self.registers.get_bc() -% 1),
+                0o023 => self.registers.set_de(self.registers.get_de() -% 1),
+                0o053 => self.registers.set_hl(self.registers.get_hl() -% 1),
+                0o073 => self.sp -= 1,
                 else => unreachable,
             }
         },
         .LDH => {
             const address = @as(u16, @intCast(operands[0])) + 0xFF00;
-            switch (opcode >> 3) {
-                0o34 => {
+            switch (opcode) {
+                0o340 => {
                     self.bus.write(address, self.registers.get(.a));
                 },
-                0o36 => {
+                0o360 => {
                     self.registers.set(.a, self.bus.read(address));
                 },
                 else => unreachable,
@@ -2160,7 +2215,7 @@ fn exec_inst(self: *Cpu) void {
                 },
                 .CP,
                 => {
-                    const cp: i8 = @as(i8, @intCast(a)) - @as(i8, @intCast(operand));
+                    const cp = a - operand;
                     flags.zero = cp == 0;
                     flags.subtract = true;
                     flags.half_carry = ((a & 0xF) - (operand & 0xF)) < 0;
