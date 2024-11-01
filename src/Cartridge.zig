@@ -119,7 +119,7 @@ pub fn load(self: *Cartridge, path: []const u8) !void {
         .header_checksum = rom[0x14D],
         .global_checksum = rom[0x14E..0x150].*,
     };
-    const ram = if (header.ram_size > 0) try self.alloc.alloc(u8, get_ram_size(header.ram_size)) else undefined;
+    const ram = try self.alloc.alloc(u8, get_ram_size(header.ram_size));
 
     self.filename = std.fs.path.basename(path);
     self.rom = rom;
@@ -169,7 +169,7 @@ pub inline fn read(self: *Cartridge, address: u16) u8 {
     return switch (address) {
         0x0000...0x3FFF => self.rom[address],
         0x4000...0x7FFF => {
-            const real_addr = address - 0x4000 + (self.rom_bank * 0x4000);
+            const real_addr: u16 = address - 0x4000 + (self.rom_bank * 0x4000);
             return self.rom[real_addr];
         },
         0xA000...0xBFFF => {
@@ -184,8 +184,8 @@ pub inline fn read(self: *Cartridge, address: u16) u8 {
 }
 
 pub inline fn write(self: *Cartridge, address: u16, value: u8) !void {
-    if (address < 0x4000) {
-        return error.ReadOnlyMemory;
+    if (address >= 0x2000 and address <= 0x3FFF) {
+        self.rom_bank = value;
     }
     self.rom[address] = value;
 }
@@ -197,7 +197,7 @@ pub fn init(alloc: Allocator) Cartridge {
         .header = undefined,
         .rom = undefined,
         .ram = undefined,
-        .rom_bank = undefined,
+        .rom_bank = 1,
         .ram_bank = undefined,
         .ram_enabled = undefined,
     };

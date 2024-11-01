@@ -1970,7 +1970,7 @@ fn exec_inst(self: *Cpu) void {
                 0o066, // LD [HL], n8
                 => {
                     const value: u8 = operands[0];
-                    self.registers.set_hl(value);
+                    self.bus.write(self.bus.read(self.registers.get_hl()), value);
                 },
                 0o001, // LD r16, n16
                 => {
@@ -1996,6 +1996,46 @@ fn exec_inst(self: *Cpu) void {
                     const address: u16 = two_u8_to_u16(operands[1], operands[0]);
                     self.bus.write(address, self.registers.get(.a));
                 },
+                0o002 => {
+                    const value: u8 = self.registers.get(.a);
+                    const address: u16 = self.registers.get_bc();
+                    self.bus.write(address, value);
+                },
+                0o012 => {
+                    const value: u8 = self.bus.read(self.registers.get_bc());
+                    self.registers.set(.a, value);
+                },
+                0o022 => {
+                    const value: u8 = self.registers.get(.a);
+                    const address: u16 = self.registers.get_de();
+                    self.bus.write(address, value);
+                },
+                0o032 => {
+                    const value: u8 = self.bus.read(self.registers.get_de());
+                    self.registers.set(.a, value);
+                },
+                0o042 => {
+                    const value: u8 = self.registers.get(.a);
+                    const address: u16 = self.registers.get_hl();
+                    self.registers.set_hl(self.registers.get_hl() + 1);
+                    self.bus.write(address, value);
+                },
+                0o052 => {
+                    const value: u8 = self.bus.read(self.registers.get_hl());
+                    self.registers.set_hl(self.registers.get_hl() + 1);
+                    self.registers.set(.a, value);
+                },
+                0o062 => {
+                    const value: u8 = self.registers.get(.a);
+                    const address: u16 = self.registers.get_hl();
+                    self.registers.set_hl(self.registers.get_hl() - 1);
+                    self.bus.write(address, value);
+                },
+                0o072 => {
+                    const value: u8 = self.bus.read(self.registers.get_hl());
+                    self.registers.set_hl(self.registers.get_hl() - 1);
+                    self.registers.set(.a, value);
+                },
                 else => unreachable,
             }
         },
@@ -2009,12 +2049,13 @@ fn exec_inst(self: *Cpu) void {
                 0o054,
                 0o074, // INC r8
                 => {
-                    const value: u8 = self.registers.get(@as(R8Register, @enumFromInt(opcode & 7)));
+                    const reg: u8 = (opcode >> 3 & 7);
+                    const value: u8 = self.registers.get(@as(R8Register, @enumFromInt(reg)));
                     const inc = value +% 1;
                     flags.zero = inc == 0;
                     flags.subtract = false;
                     flags.half_carry = ((value & 0xF) + (1 & 0xF) + @as(u8, @intFromBool(flags.carry))) > 0xF;
-                    self.registers.set(@as(R8Register, @enumFromInt(opcode & 7)), inc);
+                    self.registers.set(@as(R8Register, @enumFromInt(reg)), inc);
                 },
                 0o064,
                 // INC, [HL]
@@ -2174,17 +2215,38 @@ pub fn print(self: *Cpu) void {
     });
 }
 
+pub fn log(self: *Cpu, file: *std.fs.File) !void {
+    try file.writer().print("A:{X:0>2} F:{X:0>2} B:{X:0>2} C:{X:0>2} D:{X:0>2} E:{X:0>2} H:{X:0>2} L:{X:0>2} SP:{X:0>4} PC:{X:0>4} PCMEM:{X:0>2},{X:0>2},{X:0>2},{X:0>2}\n", .{
+        self.registers.get(.a),
+        self.registers.get(.f),
+        self.registers.get(.b),
+        self.registers.get(.c),
+        self.registers.get(.d),
+        self.registers.get(.e),
+        self.registers.get(.h),
+        self.registers.get(.l),
+        self.sp,
+        self.pc,
+        self.bus.read(self.pc),
+        self.bus.read(self.pc + 1),
+        self.bus.read(self.pc + 2),
+        self.bus.read(self.pc + 3),
+    });
+}
+
 pub fn init(bus: *Bus) Cpu {
     return .{
         .bus = bus,
         .registers = .{
-            .r8 = [_]u8{0} ** 8,
+            .r8 = [_]u8{
+                0x00, 0x13, 0x00, 0xD8, 0x01, 0x4D, 0xB0, 0x01,
+            },
         },
         .clock = Clock{},
         .cur_opcode = undefined,
         .ime = false,
         .halted = false,
-        .pc = 0x100,
+        .pc = 0x0100,
         .sp = 0xFFFE,
     };
 }

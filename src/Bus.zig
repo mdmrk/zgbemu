@@ -24,6 +24,7 @@ pub inline fn read(self: *Bus, address: u16) u8 {
         0xFF80...0xFFFE => self.hram[address - 0xFF80],
         0xFEA0...0xFEFF => undefined,
         0xFE00...0xFE9F => self.oam[address - 0xFE00],
+        0xFF44 => 0x90,
         0xE000...0xFDFF => self.wram[address - 0xE000],
         0xC000...0xDFFF => self.wram[address - 0xC000],
         0x8000...0x9FFF => self.vram[address - 0x8000],
