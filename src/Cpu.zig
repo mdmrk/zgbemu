@@ -2143,6 +2143,63 @@ fn exec_inst(self: *Cpu) void {
             }
         },
         .NOP => {},
+        .ADD => {
+            const lower: u8 = opcode & 7;
+            const a = self.registers.get(.a);
+
+            switch (opcode) {
+                0o200...0o207, 0o306 => {
+                    const operand: u8 = switch (lower) {
+                        0...5,
+                        7, // ADD A, r8
+                        => self.registers.get(@as(R8Register, @enumFromInt(lower))),
+                        6,
+                        => if (opcode >> 6 & 7 == 2)
+                            self.bus.read(self.registers.get_hl()) // ADD A, [HL]
+                        else
+                            operands[0], // ADD A, n8
+                        else => unreachable,
+                    };
+
+                    const add = a +% operand;
+                    self.registers.set(.a, add);
+                    flags.zero = add == 0;
+                    flags.subtract = false;
+                    flags.half_carry = ((a & 0xF) +% (operand & 0xF)) > 0;
+                    flags.carry = (@as(u16, a) + operand + @as(u16, @intFromBool(flags.carry))) > 0xFF;
+                },
+
+                0o011, 0o031, 0o051, 0o071 => {
+                    const hl = self.registers.get_hl();
+                    const bc = self.registers.get_bc();
+                    const operand = switch (opcode) {
+                        0o011 => self.registers.get_bc(),
+                        0o03 => self.registers.get_de(),
+                        0o05 => self.registers.get_hl(),
+                        0o07 => self.sp,
+                        else => unreachable,
+                    };
+                    const add = hl +% operand;
+                    self.registers.set_hl(add);
+                    flags.subtract = false;
+                    flags.half_carry = ((a & 0xF) + (operand & 0xF)) > 0xF;
+                    flags.carry = (@as(u32, hl) + @as(u32, bc)) > 0xFFFF;
+                },
+                0o350 => {
+                    const offset: i8 = @bitCast(operands[0]);
+                    const sp: u16 = self.sp;
+                    const unsigned_offset: u8 = @bitCast(offset);
+
+                    flags.zero = false;
+                    flags.subtract = false;
+                    flags.half_carry = ((sp & 0xF) + (unsigned_offset & 0xF)) > 0xF;
+                    flags.carry = ((sp & 0xFF) + unsigned_offset) > 0xFF;
+
+                    self.sp +%= @as(u16, @bitCast(@as(i16, offset)));
+                },
+                else => unreachable,
+            }
+        },
         .ADC, .SUB, .SBC, .AND, .XOR, .OR, .CP => {
             const a = self.registers.get(.a);
             const lower: u8 = opcode & 7;
@@ -2170,11 +2227,11 @@ fn exec_inst(self: *Cpu) void {
                 },
                 .SUB,
                 => {
-                    const sub = a - operand;
+                    const sub = a -% operand;
                     self.registers.set(.a, sub);
                     flags.zero = sub == 0;
-                    flags.subtract = false;
-                    flags.half_carry = ((a & 0xF) - (operand & 0xF)) < 0;
+                    flags.subtract = true;
+                    flags.half_carry = ((a & 0xF) -% (operand & 0xF)) > 0;
                     flags.carry = operand > a;
                 },
                 .SBC,
@@ -2215,10 +2272,10 @@ fn exec_inst(self: *Cpu) void {
                 },
                 .CP,
                 => {
-                    const cp = a - operand;
+                    const cp = a -% operand;
                     flags.zero = cp == 0;
                     flags.subtract = true;
-                    flags.half_carry = ((a & 0xF) - (operand & 0xF)) < 0;
+                    flags.half_carry = ((a & 0xF) -% (operand & 0xF)) > 0;
                     flags.carry = operand > a;
                 },
                 else => unreachable,
