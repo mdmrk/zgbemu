@@ -1754,6 +1754,13 @@ inline fn two_u8_to_u16(upper: u8, lower: u8) u16 {
     return (@as(u16, @intCast(upper)) << 8) | @as(u16, lower);
 }
 
+fn call(self: *Cpu, address: u16) void {
+    self.bus.write(self.sp -% 1, @intCast(self.pc >> 8));
+    self.bus.write(self.sp -% 2, @intCast(self.pc & 0xFF));
+    self.sp -%= 2;
+    self.pc = address;
+}
+
 fn fetch_inst(self: *Cpu) void {
     const opcode: u8 = self.bus.read(self.pc);
     self.pc += 1;
@@ -1808,17 +1815,43 @@ fn exec_inst(self: *Cpu) void {
                     else => unreachable,
                 };
                 if (condition_is_met) {
-                    self.bus.write(self.sp -% 1, @intCast(self.pc >> 8));
-                    self.bus.write(self.sp -% 2, @intCast(self.pc & 0xFF));
-                    self.sp -%= 2;
-                    self.pc = address;
+                    self.call(address);
                 }
             } else {
-                self.bus.write(self.sp -% 1, @intCast(self.pc >> 8));
-                self.bus.write(self.sp -% 2, @intCast(self.pc & 0xFF));
-                self.sp -%= 2;
-                self.pc = address;
+                self.call(address);
             }
+        },
+        .DAA => {
+            const a = self.registers.get(.a);
+            if (!flags.subtract) {
+                var result = a;
+                if (flags.half_carry or (a & 0xF) > 9) {
+                    result +%= 0x06;
+                }
+                if (flags.carry or a > 0x99) {
+                    result +%= 0x60;
+                    flags.carry = true;
+                }
+                self.registers.set(.a, result);
+            } else {
+                var result = a;
+                if (flags.half_carry) {
+                    result -%= 0x06;
+                }
+                if (flags.carry) {
+                    result -%= 0x60;
+                }
+                self.registers.set(.a, result);
+            }
+
+            flags.zero = self.registers.get(.a) == 0;
+            flags.half_carry = false;
+        },
+        .CPL => {
+            const a = ~self.registers.get(.a);
+            self.registers.set(.a, a);
+            flags.subtract = true;
+            flags.half_carry = true;
         },
         .DI => {
             self.halted = false;
@@ -2051,12 +2084,36 @@ fn exec_inst(self: *Cpu) void {
                     const address: u16 = 0xFF00 + @as(u16, @intCast(self.registers.get(.c)));
                     self.registers.set(.a, self.bus.read(address));
                 },
+                0o370 => {
+                    const offset: i8 = @bitCast(operands[0]);
+                    const value: u16 = self.sp +% @as(u16, @bitCast(@as(i16, offset)));
+                    const unsigned_offset: u8 = @bitCast(offset);
+                    self.registers.set_hl(value);
+                    flags.zero = false;
+                    flags.subtract = false;
+                    flags.half_carry = ((self.sp & 0xF) + (unsigned_offset & 0xF)) > 0xF;
+                    flags.carry = (self.sp & 0xFF) + unsigned_offset > 0xFF;
+                },
                 0o372 => {
                     const address: u16 = two_u8_to_u16(operands[1], operands[0]);
                     self.registers.set(.a, self.bus.read(address));
                 },
+                0o010 => {
+                    const lower: u8 = @truncate(self.sp);
+                    const upper: u8 = @truncate(self.sp >> 8);
+                    const address: u16 = two_u8_to_u16(operands[1], operands[0]);
+                    self.bus.write(address, lower);
+                    self.bus.write(address + 1, upper);
+                },
+                0o371 => {
+                    self.sp = self.registers.get_hl();
+                },
                 else => unreachable,
             }
+        },
+        .RST => {
+            const value: u16 = (opcode >> 3 & 7) * 8;
+            self.call(value);
         },
         .INC => {
             switch (opcode) {
@@ -2090,7 +2147,7 @@ fn exec_inst(self: *Cpu) void {
                 0o003 => self.registers.set_bc(self.registers.get_bc() +% 1),
                 0o023 => self.registers.set_de(self.registers.get_de() +% 1),
                 0o043 => self.registers.set_hl(self.registers.get_hl() +% 1),
-                0o063 => self.sp += 1,
+                0o063 => self.sp +%= 1,
                 else => unreachable,
             }
         },
@@ -2113,7 +2170,7 @@ fn exec_inst(self: *Cpu) void {
                     self.registers.set(@as(R8Register, @enumFromInt(reg)), dec);
                 },
                 0o065,
-                // DEC, [HL]
+                // DEC [HL]
                 => {
                     const address = self.registers.get_hl();
                     const value: u8 = self.bus.read(address);
@@ -2126,7 +2183,7 @@ fn exec_inst(self: *Cpu) void {
                 0o013 => self.registers.set_bc(self.registers.get_bc() -% 1),
                 0o023 => self.registers.set_de(self.registers.get_de() -% 1),
                 0o053 => self.registers.set_hl(self.registers.get_hl() -% 1),
-                0o073 => self.sp -= 1,
+                0o073 => self.sp -%= 1,
                 else => unreachable,
             }
         },
@@ -2142,11 +2199,166 @@ fn exec_inst(self: *Cpu) void {
                 else => unreachable,
             }
         },
+        .RRA => {
+            const a = self.registers.get(.a);
+            const old_carry = flags.carry;
+            const new_carry = (a & 0x1) != 0;
+            const result = (a >> 1) | (@as(u8, @intFromBool(old_carry)) << 7);
+            flags.zero = false;
+            flags.subtract = false;
+            flags.half_carry = false;
+            flags.carry = new_carry;
+            self.registers.set(.a, result);
+        },
+        .RRCA => {
+            const a = self.registers.get(.a);
+            const new_carry = (a & 0x1) != 0;
+            const result = (a >> 1) | (@as(u8, @intFromBool(new_carry)) << 7);
+            flags.zero = false;
+            flags.subtract = false;
+            flags.half_carry = false;
+            flags.carry = new_carry;
+            self.registers.set(.a, result);
+        },
+        .RLA => {
+            const a = self.registers.get(.a);
+            const old_carry = flags.carry;
+            const new_carry = (a & 0x1) != 0;
+
+            const result = (a << 1) | (@as(u8, @intFromBool(old_carry)) << 7);
+
+            flags.zero = false;
+            flags.subtract = false;
+            flags.half_carry = false;
+            flags.carry = new_carry;
+
+            self.registers.set(.a, result);
+        },
+        .RLCA => {
+            const a = self.registers.get(.a);
+            const new_carry = (a & 0x1) != 0;
+            const result = (a << 1) | (@as(u8, @intFromBool(new_carry)) << 7);
+            flags.zero = false;
+            flags.subtract = false;
+            flags.half_carry = false;
+            flags.carry = new_carry;
+            self.registers.set(.a, result);
+        },
+        .PREFIX => {
+            const cb_opcode = self.bus.read(self.pc);
+            var result: u8 = undefined;
+            self.pc += 1;
+
+            const bit_pos = @as(u3, @intCast((cb_opcode >> 3) & 0x7));
+            const reg_idx = @as(u3, @intCast(cb_opcode & 0x7));
+            const value = if (reg_idx == 0x6)
+                self.bus.read(self.registers.get_hl())
+            else
+                self.registers.get(@as(R8Register, @enumFromInt(reg_idx)));
+
+            switch (cb_opcode >> 6) {
+                0 => {
+                    switch ((cb_opcode >> 3) & 0x7) {
+                        0 => { // RLC
+                            const new_carry = (value & 0x80) != 0;
+                            const rlc = (value << 1) | @as(u8, @intFromBool(new_carry));
+                            flags.zero = rlc == 0;
+                            flags.subtract = false;
+                            flags.half_carry = false;
+                            flags.carry = new_carry;
+                            result = rlc;
+                        },
+                        1 => { // RRC
+                            const new_carry = (value & 0x1) != 0;
+                            const rrc = (value >> 1) | (@as(u8, @intFromBool(new_carry)) << 7);
+                            flags.zero = rrc == 0;
+                            flags.subtract = false;
+                            flags.half_carry = false;
+                            flags.carry = new_carry;
+                            result = rrc;
+                        },
+                        2 => { // RL
+                            const new_carry = (value & 0x80) != 0;
+                            const rl = (value << 1) | @as(u8, @intFromBool(flags.carry));
+                            flags.zero = rl == 0;
+                            flags.subtract = false;
+                            flags.half_carry = false;
+                            flags.carry = new_carry;
+                            result = rl;
+                        },
+                        3 => { // RR
+                            const new_carry = (value & 0x1) != 0;
+                            const rr = (value >> 1) | (@as(u8, @intFromBool(flags.carry)) << 7);
+                            flags.zero = rr == 0;
+                            flags.subtract = false;
+                            flags.half_carry = false;
+                            flags.carry = new_carry;
+                            result = rr;
+                        },
+                        4 => { // SLA
+                            const sla = value << 1;
+                            flags.zero = sla == 0;
+                            flags.subtract = false;
+                            flags.half_carry = false;
+                            flags.carry = (value & 0x80) != 0;
+                            result = sla;
+                        },
+                        5 => { // SRA
+                            const sra = (value >> 1) | (value & 0x80);
+                            flags.zero = sra == 0;
+                            flags.subtract = false;
+                            flags.half_carry = false;
+                            flags.carry = (value & 0x1) != 0;
+                            result = sra;
+                        },
+                        6 => { // SWAP
+                            const swap = ((value & 0xF0) >> 4) | ((value & 0x0F) << 4);
+                            flags.zero = swap == 0;
+                            flags.subtract = false;
+                            flags.half_carry = false;
+                            result = swap;
+                        },
+                        7 => { // SRL
+                            const srl = value >> 1;
+                            flags.zero = srl == 0;
+                            flags.subtract = false;
+                            flags.half_carry = false;
+                            flags.carry = (value & 0x1) != 0;
+                            result = srl;
+                        },
+                        else => unreachable,
+                    }
+                    if (reg_idx == 0x6)
+                        self.bus.write(self.registers.get_hl(), result)
+                    else
+                        self.registers.set(@as(R8Register, @enumFromInt(reg_idx)), result);
+                },
+                1 => { // BIT
+                    flags.zero = (value & (@as(u8, 1) << bit_pos)) == 0;
+                    flags.subtract = false;
+                    flags.half_carry = true;
+                },
+                2 => { // RES
+                    const res = value & ~(@as(u8, 1) << bit_pos);
+                    if (reg_idx == 0x6)
+                        self.bus.write(self.registers.get_hl(), res)
+                    else
+                        self.registers.set(@as(R8Register, @enumFromInt(reg_idx)), res);
+                },
+                3 => { // SET
+                    const set = value | (@as(u8, 1) << bit_pos);
+                    if (reg_idx == 0x6)
+                        self.bus.write(self.registers.get_hl(), set)
+                    else
+                        self.registers.set(@as(R8Register, @enumFromInt(reg_idx)), set);
+                },
+                else => unreachable,
+            }
+        },
         .NOP => {},
         .ADD => {
             const lower: u8 = opcode & 7;
             const a = self.registers.get(.a);
-
             switch (opcode) {
                 0o200...0o207, 0o306 => {
                     const operand: u8 = switch (lower) {
@@ -2160,41 +2372,36 @@ fn exec_inst(self: *Cpu) void {
                             operands[0], // ADD A, n8
                         else => unreachable,
                     };
-
                     const add = a +% operand;
                     self.registers.set(.a, add);
                     flags.zero = add == 0;
                     flags.subtract = false;
-                    flags.half_carry = ((a & 0xF) +% (operand & 0xF)) > 0;
-                    flags.carry = (@as(u16, a) + operand + @as(u16, @intFromBool(flags.carry))) > 0xFF;
+                    flags.half_carry = ((a & 0xF) + (operand & 0xF)) > 0xF;
+                    flags.carry = (@as(u16, a) + operand) > 0xFF;
                 },
-
                 0o011, 0o031, 0o051, 0o071 => {
                     const hl = self.registers.get_hl();
-                    const bc = self.registers.get_bc();
                     const operand = switch (opcode) {
                         0o011 => self.registers.get_bc(),
-                        0o03 => self.registers.get_de(),
-                        0o05 => self.registers.get_hl(),
-                        0o07 => self.sp,
+                        0o031 => self.registers.get_de(),
+                        0o051 => self.registers.get_hl(),
+                        0o071 => self.sp,
                         else => unreachable,
                     };
                     const add = hl +% operand;
                     self.registers.set_hl(add);
                     flags.subtract = false;
-                    flags.half_carry = ((a & 0xF) + (operand & 0xF)) > 0xF;
-                    flags.carry = (@as(u32, hl) + @as(u32, bc)) > 0xFFFF;
+                    flags.half_carry = ((hl & 0xFFF) + (operand & 0xFFF)) > 0xFFF;
+                    flags.carry = (@as(u32, hl) + @as(u32, operand)) > 0xFFFF;
                 },
                 0o350 => {
                     const offset: i8 = @bitCast(operands[0]);
                     const sp: u16 = self.sp;
                     const unsigned_offset: u8 = @bitCast(offset);
-
                     flags.zero = false;
                     flags.subtract = false;
                     flags.half_carry = ((sp & 0xF) + (unsigned_offset & 0xF)) > 0xF;
                     flags.carry = ((sp & 0xFF) + unsigned_offset) > 0xFF;
-
                     self.sp +%= @as(u16, @bitCast(@as(i16, offset)));
                 },
                 else => unreachable,
@@ -2218,12 +2425,12 @@ fn exec_inst(self: *Cpu) void {
             switch (op.mnemonic) {
                 .ADC,
                 => {
-                    const adc = a + operand + @as(u8, @intFromBool(flags.carry));
+                    const adc = a +% operand +% @as(u8, @intFromBool(flags.carry));
                     self.registers.set(.a, adc);
                     flags.zero = adc == 0;
                     flags.subtract = false;
-                    flags.half_carry = ((a & 0xF) + (operand & 0xF) + @as(u8, @intFromBool(flags.carry))) > 0xF;
-                    flags.carry = (@as(u16, a) + operand + @as(u16, @intFromBool(flags.carry))) > 0xFF;
+                    flags.half_carry = ((a & 0xF) +% (operand & 0xF) +% @as(u8, @intFromBool(flags.carry))) > 0xF;
+                    flags.carry = (@as(u16, a) +% operand +% @as(u16, @intFromBool(flags.carry))) > 0xFF;
                 },
                 .SUB,
                 => {
@@ -2231,8 +2438,8 @@ fn exec_inst(self: *Cpu) void {
                     self.registers.set(.a, sub);
                     flags.zero = sub == 0;
                     flags.subtract = true;
-                    flags.half_carry = ((a & 0xF) -% (operand & 0xF)) > 0;
-                    flags.carry = operand > a;
+                    flags.half_carry = (a & 0xF) < (operand & 0xF);
+                    flags.carry = a < operand;
                 },
                 .SBC,
                 => {
@@ -2275,7 +2482,7 @@ fn exec_inst(self: *Cpu) void {
                     const cp = a -% operand;
                     flags.zero = cp == 0;
                     flags.subtract = true;
-                    flags.half_carry = ((a & 0xF) -% (operand & 0xF)) > 0;
+                    flags.half_carry = (a & 0xF) < (operand & 0xF);
                     flags.carry = operand > a;
                 },
                 else => unreachable,
