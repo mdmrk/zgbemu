@@ -11,23 +11,25 @@ const Ctx = struct {
 };
 
 pub fn main() !void {
-    var log_file: std.fs.File = undefined;
+    const is_debug = comptime std.options.log_level == .debug;
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
     defer _ = gpa.deinit();
 
-    const log_file_path = try std.fs.path.join(alloc, &[_][]const u8{ "zig-out", "out.log" });
-    defer alloc.free(log_file_path);
-    log_file = try std.fs.cwd().createFile(log_file_path, .{ .read = true });
-    defer log_file.close();
+    var log_file: if (is_debug) std.fs.File else void = undefined;
+    if (is_debug) {
+        const log_file_path = try std.fs.path.join(alloc, &[_][]const u8{ "zig-out", "out.log" });
+        defer alloc.free(log_file_path);
+        log_file = try std.fs.cwd().createFile(log_file_path, .{});
+    }
+    defer if (is_debug) log_file.close();
 
     var args = try std.process.argsWithAllocator(alloc);
     defer args.deinit();
 
     _ = args.skip();
     const path = args.next() orelse return error.MissingRomPath;
-    std.debug.print("{s}\n", .{path});
-
+    std.log.debug("filepath: {s}\n", .{path});
     var cardtrige = Cartridge.init(alloc);
     defer cardtrige.deinit();
     try cardtrige.load(path);
@@ -38,10 +40,10 @@ pub fn main() !void {
     var cpu = Cpu.init(&bus);
 
     while (Ctx.running) {
-        cpu.print();
-        if (std.options.log_level == .debug) {
+        if (comptime is_debug) {
             try cpu.log(&log_file);
         }
+        cpu.print();
         try cpu.step();
         // _ = try std.io.getStdIn().reader().readByte();
     }

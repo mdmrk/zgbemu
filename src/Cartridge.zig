@@ -12,6 +12,7 @@ filename: []const u8,
 header: CartridgeHeader,
 rom: []u8,
 ram: []u8,
+mode: u8,
 rom_bank: u16,
 ram_bank: u16,
 ram_enabled: bool,
@@ -169,25 +170,67 @@ pub inline fn read(self: *Cartridge, address: u16) u8 {
     return switch (address) {
         0x0000...0x3FFF => self.rom[address],
         0x4000...0x7FFF => {
-            const real_addr: u16 = address - 0x4000 + (self.rom_bank * 0x4000);
+            const bank_size: usize = 0x4000;
+            const rom_banks = self.rom.len / bank_size;
+            const bank = self.rom_bank % rom_banks;
+            const offset = address - 0x4000;
+            const real_addr = bank * bank_size + offset;
+            if (real_addr >= self.rom.len) return 0xFF;
             return self.rom[real_addr];
         },
         0xA000...0xBFFF => {
-            if (self.ram_enabled) {
-                const ram_addr = address - 0xA000 + (self.ram_bank * 0x2000);
-                return self.ram[ram_addr];
-            }
-            return 0xFF;
+            if (!self.ram_enabled or self.ram.len == 0) return 0xFF;
+            const bank_size: usize = 0x2000;
+            const ram_banks = self.ram.len / bank_size;
+            if (ram_banks == 0) return 0xFF;
+            const bank = self.ram_bank % ram_banks;
+            const offset = address - 0xA000;
+            const real_addr = bank * bank_size + offset;
+            if (real_addr >= self.ram.len) return 0xFF;
+            return self.ram[real_addr];
         },
-        else => unreachable,
+        else => 0xFF,
     };
 }
 
 pub inline fn write(self: *Cartridge, address: u16, value: u8) void {
-    if (address >= 0x2000 and address <= 0x3FFF) {
-        self.rom_bank = value;
+    switch (address) {
+        0x0000...0x1FFF => {
+            self.ram_enabled = (value & 0x0F) == 0x0A;
+        },
+        0x2000...0x3FFF => {
+            var bank = value & 0x1F;
+            if (bank == 0) bank = 1;
+            const rom_banks = self.rom.len / 0x4000;
+            self.rom_bank = @as(u16, @intCast((self.rom_bank & 0x60) | (bank % rom_banks)));
+        },
+        0x4000...0x5FFF => {
+            if (self.mode == 0) {
+                const rom_banks = self.rom.len / 0x4000;
+                self.rom_bank = (self.rom_bank & 0x1F) | ((value & 0x03) << 5);
+                self.rom_bank = @intCast(self.rom_bank % rom_banks);
+            } else {
+                const ram_banks = if (self.ram.len > 0) self.ram.len / 0x2000 else 1;
+                self.ram_bank = value & 0x03;
+                self.ram_bank = @intCast(self.rom_bank % ram_banks);
+            }
+        },
+        0x6000...0x7FFF => {
+            self.mode = value & 0x01;
+        },
+        0xA000...0xBFFF => {
+            if (!self.ram_enabled or self.ram.len == 0) return;
+            const bank_size: usize = 0x2000;
+            const ram_banks = self.ram.len / bank_size;
+            if (ram_banks == 0) return;
+            const bank = self.ram_bank % ram_banks;
+            const offset = address - 0xA000;
+            const real_addr = bank * bank_size + offset;
+            if (real_addr >= self.ram.len) return;
+            self.ram[real_addr] = value;
+        },
+        else => unreachable,
     }
-    self.rom[address] = value;
 }
 
 pub fn init(alloc: Allocator) Cartridge {
@@ -195,6 +238,7 @@ pub fn init(alloc: Allocator) Cartridge {
         .alloc = alloc,
         .filename = undefined,
         .header = undefined,
+        .mode = 0,
         .rom = undefined,
         .ram = undefined,
         .rom_bank = 1,

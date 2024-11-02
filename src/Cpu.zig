@@ -1678,11 +1678,11 @@ registers: struct {
     }
 
     /// Get register value
-    inline fn get(self: *Self, register_name: R8Register) u8 {
+    inline fn get(self: *const Self, register_name: R8Register) u8 {
         return self.r8[@intFromEnum(register_name)];
     }
 
-    inline fn get_bc(self: *Self) u16 {
+    inline fn get_bc(self: *const Self) u16 {
         return two_u8_to_u16(self.get(.b), self.get(.c));
     }
 
@@ -1691,7 +1691,7 @@ registers: struct {
         self.set(.c, @as(u8, @intCast(value & 0x00FF)));
     }
 
-    inline fn get_de(self: *Self) u16 {
+    inline fn get_de(self: *const Self) u16 {
         return two_u8_to_u16(self.get(.d), self.get(.e));
     }
 
@@ -1700,7 +1700,7 @@ registers: struct {
         self.set(.e, @as(u8, @intCast(value & 0x00FF)));
     }
 
-    inline fn get_hl(self: *Self) u16 {
+    inline fn get_hl(self: *const Self) u16 {
         return two_u8_to_u16(self.get(.h), self.get(.l));
     }
 
@@ -1709,7 +1709,7 @@ registers: struct {
         self.set(.l, @as(u8, @intCast(value & 0x00FF)));
     }
 
-    inline fn get_af(self: *Self) u16 {
+    inline fn get_af(self: *const Self) u16 {
         return two_u8_to_u16(self.get(.a), self.get(.f));
     }
 
@@ -1718,7 +1718,7 @@ registers: struct {
         self.set(.f, @as(u8, @intCast(value & 0x00FF)));
     }
 
-    fn get_flags(self: *Self) Flags {
+    fn get_flags(self: *const Self) Flags {
         const f_register = self.get(.f);
         const zero = ((f_register >> Flags.ZERO_FLAG_BYTE_POSITION) & 0b1) != 0;
         const subtract = ((f_register >> Flags.SUBTRACT_FLAG_BYTE_POSITION) & 0b1) != 0;
@@ -1773,7 +1773,14 @@ fn exec_inst(self: *Cpu) void {
     const operants_size = op.bytes - 1;
     var operands: [2]u8 = .{ 0, 0 };
     var flags: Flags = self.registers.get_flags();
+    var set_ime: u8 = 0;
 
+    if (set_ime > 0) {
+        set_ime -= 1;
+        if (set_ime == 0) {
+            self.ime = true;
+        }
+    }
     if (operants_size > 0) {
         var i: u16 = 0;
         while (i < operants_size) : (i += 1) {
@@ -1854,7 +1861,10 @@ fn exec_inst(self: *Cpu) void {
             flags.half_carry = true;
         },
         .DI => {
-            self.halted = false;
+            self.ime = false;
+        },
+        .EI => {
+            set_ime = 2;
         },
         .JP => {
             const address: u16 = switch (opcode) {
@@ -1895,6 +1905,15 @@ fn exec_inst(self: *Cpu) void {
             } else {
                 self.pc = address;
             }
+        },
+        .RETI => {
+            const low_byte = self.bus.read(self.sp);
+            const high_byte = self.bus.read(self.sp +% 1);
+            const return_addr = (@as(u16, high_byte) << 8) | low_byte;
+
+            self.sp +%= 2;
+            self.pc = return_addr;
+            self.ime = true;
         },
         .RET => {
             const is_conditional: bool = opcode & 7 == 0;
@@ -2096,7 +2115,8 @@ fn exec_inst(self: *Cpu) void {
                 },
                 0o372 => {
                     const address: u16 = two_u8_to_u16(operands[1], operands[0]);
-                    self.registers.set(.a, self.bus.read(address));
+                    const value = self.bus.read(address);
+                    self.registers.set(.a, value);
                 },
                 0o010 => {
                     const lower: u8 = @truncate(self.sp);
@@ -2159,7 +2179,7 @@ fn exec_inst(self: *Cpu) void {
                 0o035,
                 0o045,
                 0o055,
-                0o075, // DEC, r8
+                0o075, // DEC r8
                 => {
                     const reg: u8 = (opcode >> 3 & 7);
                     const value: u8 = self.registers.get(@as(R8Register, @enumFromInt(reg)));
@@ -2169,8 +2189,7 @@ fn exec_inst(self: *Cpu) void {
                     flags.half_carry = (value & 0xF) == 0;
                     self.registers.set(@as(R8Register, @enumFromInt(reg)), dec);
                 },
-                0o065,
-                // DEC [HL]
+                0o065, // DEC [HL]
                 => {
                     const address = self.registers.get_hl();
                     const value: u8 = self.bus.read(address);
@@ -2222,26 +2241,23 @@ fn exec_inst(self: *Cpu) void {
         },
         .RLA => {
             const a = self.registers.get(.a);
-            const old_carry = flags.carry;
-            const new_carry = (a & 0x1) != 0;
-
-            const result = (a << 1) | (@as(u8, @intFromBool(old_carry)) << 7);
-
+            const new_carry = (a & 0x80) != 0;
+            const result = (a << 1) | @as(u8, @intFromBool(flags.carry));
             flags.zero = false;
             flags.subtract = false;
             flags.half_carry = false;
             flags.carry = new_carry;
-
             self.registers.set(.a, result);
         },
         .RLCA => {
             const a = self.registers.get(.a);
-            const new_carry = (a & 0x1) != 0;
-            const result = (a << 1) | (@as(u8, @intFromBool(new_carry)) << 7);
+            const new_carry = (a & 0x80) != 0;
+            const result = (a << 1) | @as(u8, @intFromBool(new_carry));
             flags.zero = false;
             flags.subtract = false;
             flags.half_carry = false;
             flags.carry = new_carry;
+
             self.registers.set(.a, result);
         },
         .PREFIX => {
@@ -2316,6 +2332,7 @@ fn exec_inst(self: *Cpu) void {
                             flags.zero = swap == 0;
                             flags.subtract = false;
                             flags.half_carry = false;
+                            flags.carry = false;
                             result = swap;
                         },
                         7 => { // SRL
@@ -2356,6 +2373,16 @@ fn exec_inst(self: *Cpu) void {
             }
         },
         .NOP => {},
+        .CCF => {
+            flags.subtract = false;
+            flags.half_carry = false;
+            flags.carry = !flags.carry;
+        },
+        .SCF => {
+            flags.subtract = false;
+            flags.half_carry = false;
+            flags.carry = true;
+        },
         .ADD => {
             const lower: u8 = opcode & 7;
             const a = self.registers.get(.a);
@@ -2443,12 +2470,14 @@ fn exec_inst(self: *Cpu) void {
                 },
                 .SBC,
                 => {
-                    const sbc = a - operand - @as(u8, @intFromBool(flags.carry));
-                    self.registers.set(.a, sbc);
-                    flags.zero = sbc == 0;
+                    const sub = @as(u16, a) -% @as(u16, operand) -% @as(u16, @intFromBool(flags.carry));
+                    const result = @as(u8, @truncate(sub));
+                    self.registers.set(.a, result);
+                    flags.zero = result == 0;
                     flags.subtract = true;
-                    flags.half_carry = ((a & 0xF) - (operand & 0xF) - @as(u8, @intFromBool(flags.carry))) < 0;
-                    flags.carry = (operand + @as(u8, @intFromBool(flags.carry))) > a;
+                    flags.half_carry = ((@as(i16, @intCast(a & 0xF)) -% @as(i16, @intCast(operand & 0xF)) -% @as(i16, @intFromBool(flags.carry))) < 0);
+                    flags.carry = sub > 0xFF;
+                    self.registers.set(.a, result);
                 },
                 .AND,
                 => {
@@ -2494,11 +2523,32 @@ fn exec_inst(self: *Cpu) void {
 }
 
 pub fn step(self: *Cpu) !void {
+    if (self.ime) {
+        const ie = self.bus.read(0xFFFF);
+        const @"if" = self.bus.read(0xFF0F);
+        const pending = ie & @"if";
+
+        if (pending != 0) {
+            self.ime = false;
+            self.halted = false;
+
+            var int_bit: u3 = 0;
+            while (int_bit < 5) : (int_bit += 1) {
+                if (pending & (@as(u8, 1) << int_bit) != 0) {
+                    const new_if = @"if" & ~(@as(u8, 1) << int_bit);
+                    self.bus.write(0xFF0F, new_if);
+                    const vector = 0x0040 + (@as(u16, int_bit) << 3);
+                    self.call(vector);
+                    return;
+                }
+            }
+        }
+    }
     self.fetch_inst();
     self.exec_inst();
 }
 
-pub fn print(self: *Cpu) void {
+pub inline fn print(self: *Cpu) void {
     std.log.debug(
         \\[!] Registers
         \\b  = {}
@@ -2509,10 +2559,10 @@ pub fn print(self: *Cpu) void {
         \\l  = {}
         \\a  = {}
         \\f  = {b:0>8}
-        \\bc = {} 
-        \\de = {} 
-        \\hl = {} 
-        \\af = {} 
+        \\bc = 0x{X:0>4} 
+        \\de = 0x{X:0>4} 
+        \\hl = 0x{X:0>4} 
+        \\af = 0x{X:0>4} 
         \\pc = 0x{X:0>4} 
         \\sp = 0x{X:0>4} 
         \\
@@ -2534,7 +2584,7 @@ pub fn print(self: *Cpu) void {
     });
 }
 
-pub fn log(self: *Cpu, file: *std.fs.File) !void {
+pub fn log(self: *const Cpu, file: *const std.fs.File) !void {
     try file.writer().print("A:{X:0>2} F:{X:0>2} B:{X:0>2} C:{X:0>2} D:{X:0>2} E:{X:0>2} H:{X:0>2} L:{X:0>2} SP:{X:0>4} PC:{X:0>4} PCMEM:{X:0>2},{X:0>2},{X:0>2},{X:0>2}\n", .{
         self.registers.get(.a),
         self.registers.get(.f),
@@ -2568,8 +2618,4 @@ pub fn init(bus: *Bus) Cpu {
         .pc = 0x0100,
         .sp = 0xFFFE,
     };
-}
-
-pub fn deinit(self: *Cpu) void {
-    self.stack.deinit();
 }
