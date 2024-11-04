@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux builds
+          - os: linux
+            arch: x86_64
+            runner: ubuntu-latest
+            
+          - os: linux
+            arch: aarch64
+            runner: ubuntu-latest
+            
+          # macOS builds
+          - os: macos
+            arch: x86_64
+            runner: macos-latest
+            
+          - os: macos
+            arch: aarch64
+            runner: macos-latest
+            
+          # Windows builds
+          - os: windows
+            arch: x86_64
+            runner: windows-latest
+            
+          - os: windows
+            arch: aarch64
+            runner: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: master
+
+      # Get date and commit hash
+      - name: Get build info
+        id: build_info
+        shell: bash
+        run: |
+          echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+          echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      # Install Linux dependencies
+      - name: Install Linux Dependencies
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev
+
+      # Setup cross-compilation for AArch64
+      - name: Setup AArch64 Cross-Compilation
+        if: matrix.arch == 'aarch64' && matrix.os != 'macos'
+        run: |
+          if [ "${{ matrix.os }}" = "linux" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+          fi
+        shell: bash
+
+      # Build step
+      - name: Build
+        run: |
+          zig build -Dtarget=${{ matrix.arch }}-${{ matrix.os }}-gnu -Doptimize=ReleaseFast
+        shell: bash
+
+      # Create release directory and copy files
+      - name: Prepare Release Files
+        shell: bash
+        run: |
+          mkdir -p release
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            cp zig-out/bin/zgbemu.exe release/zgbemu-${{ matrix.arch }}-${{ matrix.os }}-${{ steps.build_info.outputs.date }}-${{ steps.build_info.outputs.commit_hash }}.exe
+          else
+            cp zig-out/bin/zgbemu release/zgbemu-${{ matrix.arch }}-${{ matrix.os }}-${{ steps.build_info.outputs.date }}-${{ steps.build_info.outputs.commit_hash }}
+          fi
+
+      # Upload artifacts
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: zgbemu-${{ matrix.arch }}-${{ matrix.os }}-${{ steps.build_info.outputs.date }}-${{ steps.build_info.outputs.commit_hash }}
+          path: release/*
