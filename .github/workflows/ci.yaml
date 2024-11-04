@@ -15,7 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux builds
           - os: linux
             arch: x86_64
             runner: ubuntu-latest
@@ -24,7 +23,6 @@ jobs:
             arch: aarch64
             runner: ubuntu-latest
             
-          # macOS builds
           - os: macos
             arch: x86_64
             runner: macos-latest
@@ -33,7 +31,6 @@ jobs:
             arch: aarch64
             runner: macos-latest
             
-          # Windows builds
           - os: windows
             arch: x86_64
             runner: windows-latest
@@ -50,7 +47,6 @@ jobs:
         with:
           version: master
 
-      # Get date and commit hash
       - name: Get build info
         id: build_info
         shell: bash
@@ -58,14 +54,12 @@ jobs:
           echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
           echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      # Install Linux dependencies
       - name: Install Linux Dependencies
         if: matrix.os == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libx11-dev libxext-dev
 
-      # Setup cross-compilation for AArch64
       - name: Setup AArch64 Cross-Compilation
         if: matrix.arch == 'aarch64' && matrix.os != 'macos'
         run: |
@@ -74,13 +68,11 @@ jobs:
           fi
         shell: bash
 
-      # Build step
       - name: Build
         run: |
           zig build -Dtarget=${{ matrix.arch }}-${{ matrix.os }}-gnu -Doptimize=ReleaseFast
         shell: bash
 
-      # Create release directory and copy files
       - name: Prepare Release Files
         shell: bash
         run: |
@@ -91,7 +83,6 @@ jobs:
             cp zig-out/bin/zgbemu release/zgbemu-${{ matrix.arch }}-${{ matrix.os }}-${{ steps.build_info.outputs.date }}-${{ steps.build_info.outputs.commit_hash }}
           fi
 
-      # Upload artifacts
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:

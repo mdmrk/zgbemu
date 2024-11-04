@@ -2,12 +2,13 @@ const std = @import("std");
 const Cartridge = @import("Cartridge.zig");
 const Cpu = @import("Cpu.zig");
 const Bus = @import("Bus.zig");
+const build_options = @import("build_options");
 const sdl = @cImport({
     @cInclude("SDL2/SDL.h");
 });
 
 const Ctx = struct {
-    var running: bool = true;
+    var running: bool = false;
 };
 
 pub fn main() !void {
@@ -22,8 +23,13 @@ pub fn main() !void {
     }
     defer sdl.SDL_Quit();
 
+    const window_title = try std.fmt.allocPrint(std.heap.page_allocator, "zgbemu-{s}-{s}", .{
+        build_options.build_date,
+        build_options.commit_hash,
+    });
+    defer std.heap.page_allocator.free(window_title);
     const window = sdl.SDL_CreateWindow(
-        "SDL2 Test",
+        window_title.ptr,
         sdl.SDL_WINDOWPOS_UNDEFINED,
         sdl.SDL_WINDOWPOS_UNDEFINED,
         640,
