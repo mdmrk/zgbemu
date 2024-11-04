@@ -3,7 +3,7 @@ const Cartridge = @import("Cartridge.zig");
 const Cpu = @import("Cpu.zig");
 const Bus = @import("Bus.zig");
 const sdl = @cImport({
-    @cInclude("SDL3/SDL.h");
+    @cInclude("SDL2/SDL.h");
 });
 
 const Ctx = struct {
@@ -15,6 +15,26 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
     defer _ = gpa.deinit();
+
+    if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO) < 0) {
+        std.debug.print("SDL2 initialization failed: {s}\n", .{sdl.SDL_GetError()});
+        return error.SDLInitializationFailed;
+    }
+    defer sdl.SDL_Quit();
+
+    const window = sdl.SDL_CreateWindow(
+        "SDL2 Test",
+        sdl.SDL_WINDOWPOS_UNDEFINED,
+        sdl.SDL_WINDOWPOS_UNDEFINED,
+        640,
+        480,
+        sdl.SDL_WINDOW_SHOWN,
+    ) orelse {
+        std.debug.print("Window creation failed: {s}\n", .{sdl.SDL_GetError()});
+        return error.SDLWindowCreationFailed;
+    };
+    defer sdl.SDL_DestroyWindow(window);
+    sdl.SDL_Delay(3000);
 
     var log_file: if (is_debug) std.fs.File else void = undefined;
     if (is_debug) {
