@@ -2,13 +2,13 @@ const std = @import("std");
 const Cartridge = @import("Cartridge.zig");
 const Cpu = @import("Cpu.zig");
 const Bus = @import("Bus.zig");
-const build_options = @import("build_options");
+const build_version = @import("build_version");
 const sdl = @cImport({
     @cInclude("SDL2/SDL.h");
 });
 
 const Ctx = struct {
-    var running: bool = false;
+    var running: bool = true;
 };
 
 pub fn main() !void {
@@ -17,30 +17,29 @@ pub fn main() !void {
     const alloc = gpa.allocator();
     defer _ = gpa.deinit();
 
-    if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO) < 0) {
-        std.debug.print("SDL2 initialization failed: {s}\n", .{sdl.SDL_GetError()});
-        return error.SDLInitializationFailed;
-    }
-    defer sdl.SDL_Quit();
-
-    const window_title = try std.fmt.allocPrint(std.heap.page_allocator, "zgbemu-{s}-{s}", .{
-        build_options.build_date,
-        build_options.commit_hash,
+    // if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO) < 0) {
+    //     std.debug.print("SDL2 initialization failed: {s}\n", .{sdl.SDL_GetError()});
+    //     return error.SDLInitializationFailed;
+    // }
+    // defer sdl.SDL_Quit();
+    //
+    const window_title = std.fmt.comptimePrint("zgbemu-{s}", .{
+        build_version.version,
     });
-    defer std.heap.page_allocator.free(window_title);
-    const window = sdl.SDL_CreateWindow(
-        window_title.ptr,
-        sdl.SDL_WINDOWPOS_UNDEFINED,
-        sdl.SDL_WINDOWPOS_UNDEFINED,
-        640,
-        480,
-        sdl.SDL_WINDOW_SHOWN,
-    ) orelse {
-        std.debug.print("Window creation failed: {s}\n", .{sdl.SDL_GetError()});
-        return error.SDLWindowCreationFailed;
-    };
-    defer sdl.SDL_DestroyWindow(window);
-    sdl.SDL_Delay(3000);
+    std.log.debug("{s}\n", .{window_title});
+    // defer std.heap.page_allocator.free(window_title);
+    // const window = sdl.SDL_CreateWindow(
+    //     window_title.ptr,
+    //     sdl.SDL_WINDOWPOS_CENTERED,
+    //     sdl.SDL_WINDOWPOS_CENTERED,
+    //     640,
+    //     480,
+    //     sdl.SDL_WINDOW_SHOWN,
+    // ) orelse {
+    //     std.debug.print("Window creation failed: {s}\n", .{sdl.SDL_GetError()});
+    //     return error.SDLWindowCreationFailed;
+    // };
+    // defer sdl.SDL_DestroyWindow(window);
 
     var log_file: if (is_debug) std.fs.File else void = undefined;
     if (is_debug) {

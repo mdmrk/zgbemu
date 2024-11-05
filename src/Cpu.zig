@@ -1,13 +1,9 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Bus = @import("Bus.zig");
+const Timer = @import("Timer.zig");
 
 const Cpu = @This();
-
-const Clock = struct {
-    m: u16 = 0,
-    t: u16 = 0,
-};
 
 const Flags = packed struct {
     const ZERO_FLAG_BYTE_POSITION: u8 = 7;
@@ -1667,6 +1663,7 @@ const R8Register = enum(u3) {
 };
 
 bus: *Bus,
+timer: Timer,
 registers: struct {
     const Self = @This();
 
@@ -1743,10 +1740,11 @@ registers: struct {
         self.set(.f, result);
     }
 },
-clock: Clock,
 cur_opcode: u8,
 ime: bool,
 halted: bool,
+halt_bug_triggered: bool,
+ei_executed: bool,
 pc: u16,
 sp: u16,
 
@@ -1754,10 +1752,17 @@ inline fn two_u8_to_u16(upper: u8, lower: u8) u16 {
     return (@as(u16, @intCast(upper)) << 8) | @as(u16, lower);
 }
 
-fn call(self: *Cpu, address: u16) void {
-    self.bus.write(self.sp -% 1, @intCast(self.pc >> 8));
-    self.bus.write(self.sp -% 2, @intCast(self.pc & 0xFF));
-    self.sp -%= 2;
+inline fn set_timer_interrupt_request_bit(self: *Cpu) void {
+    const current_if = self.bus.read(0xFF0F);
+    const new_if = current_if | (1 << 2);
+    self.bus.write(0xFF0F, new_if);
+}
+
+inline fn call(self: *Cpu, address: u16) void {
+    self.sp -%= 1;
+    self.bus.write(self.sp, @intCast(self.pc >> 8));
+    self.sp -%= 1;
+    self.bus.write(self.sp, @intCast(self.pc & 0xFF));
     self.pc = address;
 }
 
@@ -1772,15 +1777,9 @@ fn exec_inst(self: *Cpu) void {
     const op = fetch_opcode(self.cur_opcode);
     const operants_size = op.bytes - 1;
     var operands: [2]u8 = .{ 0, 0 };
+    var condition_is_met: bool = false;
     var flags: Flags = self.registers.get_flags();
-    var set_ime: u8 = 0;
 
-    if (set_ime > 0) {
-        set_ime -= 1;
-        if (set_ime == 0) {
-            self.ime = true;
-        }
-    }
     if (operants_size > 0) {
         var i: u16 = 0;
         while (i < operants_size) : (i += 1) {
@@ -1814,7 +1813,7 @@ fn exec_inst(self: *Cpu) void {
             const address = two_u8_to_u16(operands[1], operands[0]);
             const is_conditional: bool = opcode & 7 == 4;
             if (is_conditional) {
-                const condition_is_met: bool = switch (opcode) {
+                condition_is_met = switch (opcode) {
                     0o304 => flags.zero == false,
                     0o314 => flags.zero == true,
                     0o324 => flags.carry == false,
@@ -1864,7 +1863,7 @@ fn exec_inst(self: *Cpu) void {
             self.ime = false;
         },
         .EI => {
-            set_ime = 2;
+            self.ei_executed = true;
         },
         .JP => {
             const address: u16 = switch (opcode) {
@@ -1873,7 +1872,7 @@ fn exec_inst(self: *Cpu) void {
             };
             const is_conditional: bool = opcode & 7 == 2;
             if (is_conditional) {
-                const condition_is_met: bool = switch (opcode) {
+                condition_is_met = switch (opcode) {
                     0o302 => flags.zero == false,
                     0o312 => flags.zero == true,
                     0o322 => flags.carry == false,
@@ -1892,7 +1891,7 @@ fn exec_inst(self: *Cpu) void {
             const address: u16 = self.pc +% @as(u16, @bitCast(@as(i16, @intCast(offset))));
             const is_conditional: bool = opcode >> 3 & 7 != 3;
             if (is_conditional) {
-                const condition_is_met: bool = switch (opcode) {
+                condition_is_met = switch (opcode) {
                     0o040 => flags.zero == false,
                     0o050 => flags.zero == true,
                     0o060 => flags.carry == false,
@@ -1919,7 +1918,7 @@ fn exec_inst(self: *Cpu) void {
             const is_conditional: bool = opcode & 7 == 0;
 
             if (is_conditional) {
-                const condition_is_met: bool = switch (opcode) {
+                condition_is_met = switch (opcode) {
                     0o300 => flags.zero == false,
                     0o310 => flags.zero == true,
                     0o320 => flags.carry == false,
@@ -2134,6 +2133,19 @@ fn exec_inst(self: *Cpu) void {
         .RST => {
             const value: u16 = (opcode >> 3 & 7) * 8;
             self.call(value);
+        },
+        .HALT => {
+            const ie = self.bus.read(0xFFFF);
+            const @"if" = self.bus.read(0xFF0F);
+            const pending = ie & @"if";
+
+            if (pending != 0) {
+                if (!self.ime) {
+                    self.halt_bug_triggered = true;
+                }
+            } else {
+                self.halted = true;
+            }
         },
         .INC => {
             switch (opcode) {
@@ -2520,9 +2532,21 @@ fn exec_inst(self: *Cpu) void {
         else => @panic("Operation not implemented"),
     }
     self.registers.set_flags(flags);
+
+    var cycles: u8 = 0;
+    if (op.cycles.len > 1) { // Conditional op
+        cycles = if (condition_is_met) op.cycles[0] else op.cycles[1];
+    } else {
+        cycles = op.cycles[0];
+    }
+    self.timer.run_cycles(cycles);
+    if (self.timer.is_timer_interrupt_requested()) {
+        self.set_timer_interrupt_request_bit();
+    }
 }
 
-pub fn step(self: *Cpu) !void {
+/// Returns true if an interrupt has been served
+inline fn interrupt_handler(self: *Cpu) bool {
     if (self.ime) {
         const ie = self.bus.read(0xFFFF);
         const @"if" = self.bus.read(0xFF0F);
@@ -2532,20 +2556,60 @@ pub fn step(self: *Cpu) !void {
             self.ime = false;
             self.halted = false;
 
-            var int_bit: u3 = 0;
-            while (int_bit < 5) : (int_bit += 1) {
+            inline for (0..5) |int_bit| {
                 if (pending & (@as(u8, 1) << int_bit) != 0) {
                     const new_if = @"if" & ~(@as(u8, 1) << int_bit);
                     self.bus.write(0xFF0F, new_if);
                     const vector = 0x0040 + (@as(u16, int_bit) << 3);
                     self.call(vector);
-                    return;
+                    self.fetch_inst();
+                    self.exec_inst();
+                    return true;
                 }
             }
         }
     }
+    return false;
+}
+
+fn check_halt(self: *Cpu) void {
+    if (self.halted) {
+        const ie = self.bus.read(0xFFFF);
+        const @"if" = self.bus.read(0xFF0F);
+        const pending = ie & @"if";
+
+        if (pending != 0) {
+            self.halted = false;
+        }
+    }
+}
+
+pub fn step(self: *Cpu) !void {
+    const prev_ei = self.ei_executed;
+    self.ei_executed = false;
+
+    const ie = self.bus.read(0xFFFF);
+    const @"if" = self.bus.read(0xFF0F);
+    const pending = ie & @"if";
+
+    if (self.ime and pending != 0) {
+        self.halted = false;
+        if (self.interrupt_handler()) {
+            return;
+        }
+    }
+
+    if (self.halted) {
+        self.timer.run_cycles(4);
+        return;
+    }
+
     self.fetch_inst();
     self.exec_inst();
+
+    if (prev_ei) {
+        self.ime = true;
+    }
 }
 
 pub inline fn print(self: *Cpu) void {
@@ -2604,17 +2668,21 @@ pub fn log(self: *const Cpu, file: *const std.fs.File) !void {
 }
 
 pub fn init(bus: *Bus) Cpu {
+    const timer = Timer.init(bus);
+
     return .{
         .bus = bus,
+        .timer = timer,
         .registers = .{
             .r8 = [_]u8{
                 0x00, 0x13, 0x00, 0xD8, 0x01, 0x4D, 0xB0, 0x01,
             },
         },
-        .clock = Clock{},
         .cur_opcode = undefined,
         .ime = false,
         .halted = false,
+        .halt_bug_triggered = false,
+        .ei_executed = false,
         .pc = 0x0100,
         .sp = 0xFFFE,
     };

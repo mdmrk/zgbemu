@@ -42,9 +42,8 @@ pub fn build(b: *std.Build) void {
     });
 
     const options = b.addOptions();
-    options.addOption([]const u8, "build_date", version.date);
-    options.addOption([]const u8, "commit_hash", version.commit);
-    exe.root_module.addOptions("build_options", options);
+    options.addOption([]const u8, "version", b.fmt("{s}-{s}", .{ version.date, version.commit }));
+    exe.root_module.addOptions("build_version", options);
 
     exe.linkLibrary(sdl_dep.artifact("SDL2"));
     exe.addIncludePath(sdl_dep.path("include"));
