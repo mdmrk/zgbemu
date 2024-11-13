@@ -55,21 +55,37 @@ pub fn main() !void {
     _ = args.skip();
     const path = args.next() orelse return error.MissingRomPath;
     std.log.debug("filepath: {s}\n", .{path});
+
     var cardtrige = Cartridge.init(alloc);
     defer cardtrige.deinit();
     try cardtrige.load(path);
     try cardtrige.verify();
 
     var bus = Bus.init(&cardtrige);
-
     var cpu = Cpu.init(&bus);
 
     while (Ctx.running) {
-        if (comptime is_debug) {
+        std.log.debug("{s}", .{[_]u8{'='} ** 20});
+        if (is_debug) {
             try cpu.log(&log_file);
+            cpu.print();
         }
-        cpu.print();
-        try cpu.step();
-        // _ = try std.io.getStdIn().reader().readByte();
+        if (is_debug) {
+            try cpu.step_debug(true, 152036);
+        } else {
+            try cpu.step();
+        }
+        std.log.debug("{s}\n", .{[_]u8{'='} ** 20});
     }
 }
+
+// Passing test roms
+// 01 - OK
+// 02 - NO
+// 03 - OK
+// 04 - NO
+// 05 - OK
+// 06 - OK
+// 07 - OK
+// 08 - OK
+// 09 - OK

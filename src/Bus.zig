@@ -12,15 +12,18 @@ io: [128]u8,
 ie: u8,
 
 pub fn init(cartridge: *Cartridge) Bus {
-    return .{
+    const DIV_ADDR: u16 = 0xFF04;
+    var bus: Bus = .{
         .cartridge = cartridge,
         .wram = [_]u8{0} ** (8 * 1024),
         .hram = [_]u8{0} ** 127,
         .vram = [_]u8{0} ** (16 * 1024),
-        .oam = [_]u8{0} ** (160),
-        .io = [_]u8{0} ** (128),
+        .oam = [_]u8{0} ** 160,
+        .io = [_]u8{0} ** 128,
         .ie = 0,
     };
+    bus.io[DIV_ADDR - 0xFF00] = 0xAB;
+    return bus;
 }
 
 pub inline fn read(self: *Bus, address: u16) u8 {
@@ -28,34 +31,42 @@ pub inline fn read(self: *Bus, address: u16) u8 {
         return 0x90;
     }
     return switch (address) {
-        0xFFFF => self.ie,
-        0xFF80...0xFFFE => self.hram[address - 0xFF80],
-        0xFF00...0xFF7F => self.io[address - 0xFF00],
-        0xFEA0...0xFEFF => undefined,
-        0xFE00...0xFE9F => self.oam[address - 0xFE00],
-        0xE000...0xFDFF => self.wram[address - 0xE000],
-        0xC000...0xDFFF => self.wram[address - 0xC000],
-        0x8000...0x9FFF => self.vram[address - 0x8000],
         0x0000...0x7FFF,
         0xA000...0xBFFF,
         => self.cartridge.read(address),
+        0x8000...0x9FFF => self.vram[address - 0x8000],
+        0xC000...0xDFFF => self.wram[address - 0xC000],
+        0xE000...0xFDFF => self.wram[address - 0xE000],
+        0xFE00...0xFE9F => self.oam[address - 0xFE00],
+        0xFEA0...0xFEFF => undefined,
+        0xFF00...0xFF7F => self.io[address - 0xFF00],
+        0xFF80...0xFFFE => self.hram[address - 0xFF80],
+        0xFFFF => self.ie,
     };
 }
 
 pub inline fn write(self: *Bus, address: u16, value: u8) void {
     switch (address) {
-        0xFFFF => self.ie = value,
-        0xFF80...0xFFFE => self.hram[address - 0xFF80] = value,
-        0xFF00...0xFF7F => self.io[address - 0xFF00] = value,
-        0xFEA0...0xFEFF => undefined,
-        0xFE00...0xFE9F => self.oam[address - 0xFE00] = value,
-        0xE000...0xFDFF => self.wram[address - 0xE000] = value,
-        0xC000...0xDFFF => self.wram[address - 0xC000] = value,
-        0x8000...0x9FFF => self.vram[address - 0x8000] = value,
         0x0000...0x7FFF,
         0xA000...0xBFFF,
         => self.cartridge.write(address, value),
+        0x8000...0x9FFF => self.vram[address - 0x8000] = value,
+        0xC000...0xDFFF => self.wram[address - 0xC000] = value,
+        0xE000...0xFDFF => self.wram[address - 0xE000] = value,
+        0xFE00...0xFE9F => self.oam[address - 0xFE00] = value,
+        0xFEA0...0xFEFF => undefined,
+        0xFF00...0xFF03,
+        0xFF05...0xFF7F,
+        => self.io[address - 0xFF00] = value,
+        0xFF04 => self.io[address - 0xFF00] = 0,
+        0xFF80...0xFFFE => self.hram[address - 0xFF80] = value,
+        0xFFFF => self.ie = value,
     }
+}
+
+pub inline fn inc_div(self: *Bus) void {
+    const DIV_ADDR: u16 = 0xFF04;
+    self.io[DIV_ADDR - 0xFF00] +%= 1;
 }
 
 // 0xFFFF        Interrupt Enable Register (IE)

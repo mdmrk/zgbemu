@@ -17,43 +17,6 @@ const Flags = packed struct {
     carry: bool,
 };
 
-const OperandName = enum {
-    @"$00",
-    @"$08",
-    @"$10",
-    @"$18",
-    @"$20",
-    @"$28",
-    @"$30",
-    @"$38",
-    A,
-    AF,
-    B,
-    BC,
-    C,
-    D,
-    DE,
-    E,
-    H,
-    HL,
-    L,
-    NC,
-    NZ,
-    SP,
-    Z,
-    a16,
-    a8,
-    e8,
-    n16,
-    n8,
-};
-
-const Operand = struct {
-    name: OperandName,
-    immediate: bool,
-    bytes: u8 = 0,
-};
-
 const OpMnemonic = enum {
     ADC,
     ADD,
@@ -106,1547 +69,1289 @@ const Op = struct {
     mnemonic: OpMnemonic,
     bytes: u8,
     cycles: []const u8,
-    operands: []const Operand = &[_]Operand{},
-    immediate: bool,
 };
 
-fn fetch_opcode(opcode: u8) Op {
+fn map_opcode(opcode: u8) Op {
     return switch (opcode) {
         0x00 => Op{
             .mnemonic = .NOP,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x01 => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{12},
-            .immediate = true,
         },
         0x02 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x03 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x04 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x05 => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x06 => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x07 => Op{
             .mnemonic = .RLCA,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x08 => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{20},
-            .immediate = false,
         },
         0x09 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x0A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x0B => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x0C => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x0D => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x0E => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x0F => Op{
             .mnemonic = .RRCA,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x10 => Op{
             .mnemonic = .STOP,
             .bytes = 2,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x11 => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{12},
-            .immediate = true,
         },
         0x12 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x13 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x14 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x15 => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x16 => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x17 => Op{
             .mnemonic = .RLA,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x18 => Op{
             .mnemonic = .JR,
             .bytes = 2,
             .cycles = &[_]u8{12},
-            .immediate = true,
         },
         0x19 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x1A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x1B => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x1C => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x1D => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x1E => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x1F => Op{
             .mnemonic = .RRA,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x20 => Op{
             .mnemonic = .JR,
             .bytes = 2,
             .cycles = &[_]u8{ 12, 8 },
-            .immediate = true,
         },
         0x21 => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{12},
-            .immediate = true,
         },
         0x22 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x23 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x24 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x25 => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x26 => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x27 => Op{
             .mnemonic = .DAA,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x28 => Op{
             .mnemonic = .JR,
             .bytes = 2,
             .cycles = &[_]u8{ 12, 8 },
-            .immediate = true,
         },
         0x29 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x2A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x2B => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x2C => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x2D => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x2E => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x2F => Op{
             .mnemonic = .CPL,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x30 => Op{
             .mnemonic = .JR,
             .bytes = 2,
             .cycles = &[_]u8{ 12, 8 },
-            .immediate = true,
         },
         0x31 => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{12},
-            .immediate = true,
         },
         0x32 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x33 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x34 => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{12},
-            .immediate = false,
         },
         0x35 => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{12},
-            .immediate = false,
         },
         0x36 => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{12},
-            .immediate = false,
         },
         0x37 => Op{
             .mnemonic = .SCF,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x38 => Op{
             .mnemonic = .JR,
             .bytes = 2,
             .cycles = &[_]u8{ 12, 8 },
-            .immediate = true,
         },
         0x39 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x3A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x3B => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x3C => Op{
             .mnemonic = .INC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x3D => Op{
             .mnemonic = .DEC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x3E => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0x3F => Op{
             .mnemonic = .CCF,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x40 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x41 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x42 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x43 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x44 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x45 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x46 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x47 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x48 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x49 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x4A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x4B => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x4C => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x4D => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x4E => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x4F => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x50 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x51 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x52 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x53 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x54 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x55 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x56 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x57 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x58 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x59 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x5A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x5B => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x5C => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x5D => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x5E => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x5F => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x60 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x61 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x62 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x63 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x64 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x65 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x66 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x67 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x68 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x69 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x6A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x6B => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x6C => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x6D => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x6E => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x6F => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x70 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x71 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x72 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x73 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x74 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x75 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x76 => Op{
             .mnemonic = .HALT,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x77 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x78 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x79 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x7A => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x7B => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x7C => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x7D => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x7E => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x7F => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x80 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x81 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x82 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x83 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x84 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x85 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x86 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x87 => Op{
             .mnemonic = .ADD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x88 => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x89 => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x8A => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x8B => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x8C => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x8D => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x8E => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x8F => Op{
             .mnemonic = .ADC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x90 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x91 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x92 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x93 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x94 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x95 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x96 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x97 => Op{
             .mnemonic = .SUB,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x98 => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x99 => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x9A => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x9B => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x9C => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x9D => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0x9E => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0x9F => Op{
             .mnemonic = .SBC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xA0 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xA1 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xA2 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xA3 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xA4 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xA5 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xA6 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0xA7 => Op{
             .mnemonic = .AND,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xA8 => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xA9 => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xAA => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xAB => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xAC => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xAD => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xAE => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0xAF => Op{
             .mnemonic = .XOR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xB0 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xB1 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xB2 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xB3 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xB4 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xB5 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xB6 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0xB7 => Op{
             .mnemonic = .OR,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xB8 => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xB9 => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xBA => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xBB => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xBC => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xBD => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xBE => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0xBF => Op{
             .mnemonic = .CP,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xC0 => Op{
             .mnemonic = .RET,
             .bytes = 1,
             .cycles = &[_]u8{ 20, 8 },
-            .immediate = true,
         },
         0xC1 => Op{
             .mnemonic = .POP,
             .bytes = 1,
             .cycles = &[_]u8{12},
-            .immediate = true,
         },
         0xC2 => Op{
             .mnemonic = .JP,
             .bytes = 3,
             .cycles = &[_]u8{ 16, 12 },
-            .immediate = true,
         },
         0xC3 => Op{
             .mnemonic = .JP,
             .bytes = 3,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xC4 => Op{
             .mnemonic = .CALL,
             .bytes = 3,
             .cycles = &[_]u8{ 24, 12 },
-            .immediate = true,
         },
         0xC5 => Op{
             .mnemonic = .PUSH,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xC6 => Op{
             .mnemonic = .ADD,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0xC7 => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xC8 => Op{
             .mnemonic = .RET,
             .bytes = 1,
             .cycles = &[_]u8{ 20, 8 },
-            .immediate = true,
         },
         0xC9 => Op{
             .mnemonic = .RET,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xCA => Op{
             .mnemonic = .JP,
             .bytes = 3,
             .cycles = &[_]u8{ 16, 12 },
-            .immediate = true,
         },
         0xCB => Op{
             .mnemonic = .PREFIX,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xCC => Op{
             .mnemonic = .CALL,
             .bytes = 3,
             .cycles = &[_]u8{ 24, 12 },
-            .immediate = true,
         },
         0xCD => Op{
             .mnemonic = .CALL,
             .bytes = 3,
             .cycles = &[_]u8{24},
-            .immediate = true,
         },
         0xCE => Op{
             .mnemonic = .ADC,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0xCF => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xD0 => Op{
             .mnemonic = .RET,
             .bytes = 1,
             .cycles = &[_]u8{ 20, 8 },
-            .immediate = true,
         },
         0xD1 => Op{
             .mnemonic = .POP,
             .bytes = 1,
             .cycles = &[_]u8{12},
-            .immediate = true,
         },
         0xD2 => Op{
             .mnemonic = .JP,
             .bytes = 3,
             .cycles = &[_]u8{ 16, 12 },
-            .immediate = true,
         },
         0xD3 => Op{
             .mnemonic = .ILLEGAL_D3,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xD4 => Op{
             .mnemonic = .CALL,
             .bytes = 3,
             .cycles = &[_]u8{ 24, 12 },
-            .immediate = true,
         },
         0xD5 => Op{
             .mnemonic = .PUSH,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xD6 => Op{
             .mnemonic = .SUB,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0xD7 => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xD8 => Op{
             .mnemonic = .RET,
             .bytes = 1,
             .cycles = &[_]u8{ 20, 8 },
-            .immediate = true,
         },
         0xD9 => Op{
             .mnemonic = .RETI,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xDA => Op{
             .mnemonic = .JP,
             .bytes = 3,
             .cycles = &[_]u8{ 16, 12 },
-            .immediate = true,
         },
         0xDB => Op{
             .mnemonic = .ILLEGAL_DB,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xDC => Op{
             .mnemonic = .CALL,
             .bytes = 3,
             .cycles = &[_]u8{ 24, 12 },
-            .immediate = true,
         },
         0xDD => Op{
             .mnemonic = .ILLEGAL_DD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xDE => Op{
             .mnemonic = .SBC,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0xDF => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xE0 => Op{
             .mnemonic = .LDH,
             .bytes = 2,
             .cycles = &[_]u8{12},
-            .immediate = false,
         },
         0xE1 => Op{
             .mnemonic = .POP,
             .bytes = 1,
             .cycles = &[_]u8{12},
-            .immediate = true,
         },
         0xE2 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0xE3 => Op{
             .mnemonic = .ILLEGAL_E3,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xE4 => Op{
             .mnemonic = .ILLEGAL_E4,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xE5 => Op{
             .mnemonic = .PUSH,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xE6 => Op{
             .mnemonic = .AND,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0xE7 => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xE8 => Op{
             .mnemonic = .ADD,
             .bytes = 2,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xE9 => Op{
             .mnemonic = .JP,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xEA => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{16},
-            .immediate = false,
         },
         0xEB => Op{
             .mnemonic = .ILLEGAL_EB,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xEC => Op{
             .mnemonic = .ILLEGAL_EC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xED => Op{
             .mnemonic = .ILLEGAL_ED,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xEE => Op{
             .mnemonic = .XOR,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0xEF => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xF0 => Op{
             .mnemonic = .LDH,
             .bytes = 2,
             .cycles = &[_]u8{12},
-            .immediate = false,
         },
         0xF1 => Op{
             .mnemonic = .POP,
             .bytes = 1,
             .cycles = &[_]u8{12},
-            .immediate = true,
         },
         0xF2 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = false,
         },
         0xF3 => Op{
             .mnemonic = .DI,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xF4 => Op{
             .mnemonic = .ILLEGAL_F4,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xF5 => Op{
             .mnemonic = .PUSH,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xF6 => Op{
             .mnemonic = .OR,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0xF7 => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
         0xF8 => Op{
             .mnemonic = .LD,
             .bytes = 2,
             .cycles = &[_]u8{12},
-            .immediate = true,
         },
         0xF9 => Op{
             .mnemonic = .LD,
             .bytes = 1,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0xFA => Op{
             .mnemonic = .LD,
             .bytes = 3,
             .cycles = &[_]u8{16},
-            .immediate = false,
         },
         0xFB => Op{
             .mnemonic = .EI,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xFC => Op{
             .mnemonic = .ILLEGAL_FC,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xFD => Op{
             .mnemonic = .ILLEGAL_FD,
             .bytes = 1,
             .cycles = &[_]u8{4},
-            .immediate = true,
         },
         0xFE => Op{
             .mnemonic = .CP,
             .bytes = 2,
             .cycles = &[_]u8{8},
-            .immediate = true,
         },
         0xFF => Op{
             .mnemonic = .RST,
             .bytes = 1,
             .cycles = &[_]u8{16},
-            .immediate = true,
         },
     };
 }
@@ -1740,11 +1445,10 @@ registers: struct {
         self.set(.f, result);
     }
 },
-cur_opcode: u8,
+current_opcode: u8,
 ime: bool,
-halted: bool,
-halt_bug_triggered: bool,
 ei_executed: bool,
+halted: bool,
 pc: u16,
 sp: u16,
 
@@ -1752,7 +1456,7 @@ inline fn two_u8_to_u16(upper: u8, lower: u8) u16 {
     return (@as(u16, @intCast(upper)) << 8) | @as(u16, lower);
 }
 
-inline fn set_timer_interrupt_request_bit(self: *Cpu) void {
+inline fn set_timer_interrupt_bit(self: *Cpu) void {
     const current_if = self.bus.read(0xFF0F);
     const new_if = current_if | (1 << 2);
     self.bus.write(0xFF0F, new_if);
@@ -1766,24 +1470,35 @@ inline fn call(self: *Cpu, address: u16) void {
     self.pc = address;
 }
 
+inline fn ret(self: *Cpu) void {
+    const low_byte = self.bus.read(self.sp);
+    const high_byte = self.bus.read(self.sp +% 1);
+    const return_addr = (@as(u16, high_byte) << 8) | low_byte;
+    self.sp +%= 2;
+    self.pc = return_addr;
+}
+
 fn fetch_inst(self: *Cpu) void {
-    const opcode: u8 = self.bus.read(self.pc);
+    const opcode: u8 = if (self.halted)
+        0x00 // NOP
+    else
+        self.bus.read(self.pc);
     self.pc += 1;
-    self.cur_opcode = opcode;
+    self.current_opcode = opcode;
 }
 
 fn exec_inst(self: *Cpu) void {
-    const opcode = self.cur_opcode;
-    const op = fetch_opcode(self.cur_opcode);
+    const opcode = self.current_opcode;
+    const op = map_opcode(self.current_opcode);
     const operants_size = op.bytes - 1;
     var operands: [2]u8 = .{ 0, 0 };
+    var is_conditional: bool = false;
     var condition_is_met: bool = false;
-    var flags: Flags = self.registers.get_flags();
+    var flags = self.registers.get_flags();
 
     if (operants_size > 0) {
-        var i: u16 = 0;
-        while (i < operants_size) : (i += 1) {
-            operands[i] = self.bus.read(self.pc + i);
+        for (0..operants_size) |i| {
+            operands[i] = self.bus.read(self.pc + @as(u16, @intCast(i)));
         }
         self.pc += operants_size;
     }
@@ -1791,17 +1506,17 @@ fn exec_inst(self: *Cpu) void {
     std.log.debug(
         \\
         \\[!] Instruction
-        \\0x{X:0>2} 0o{o:0>3}
-        \\name {s}
-        \\size {}
-        \\operands u8  0x{X:0>2} {d}
-        \\operands u16 0x{X:0>4} {d}
-        \\
+        \\0x{X:0>2} 0o{o:0>3} {s}
+        \\size   = {}
+        \\cycles = {d}
+        \\operands u8  = 0x{X:0>2} {d}
+        \\operands u16 = 0x{X:0>4} {d}
     , .{
         opcode,
         opcode,
         @tagName(op.mnemonic),
         op.bytes,
+        op.cycles,
         operands,
         operands,
         two_u8_to_u16(operands[1], operands[0]),
@@ -1811,7 +1526,7 @@ fn exec_inst(self: *Cpu) void {
     switch (op.mnemonic) {
         .CALL => {
             const address = two_u8_to_u16(operands[1], operands[0]);
-            const is_conditional: bool = opcode & 7 == 4;
+            is_conditional = opcode & 7 == 4;
             if (is_conditional) {
                 condition_is_met = switch (opcode) {
                     0o304 => flags.zero == false,
@@ -1870,7 +1585,7 @@ fn exec_inst(self: *Cpu) void {
                 0o351 => self.registers.get_hl(),
                 else => two_u8_to_u16(operands[1], operands[0]),
             };
-            const is_conditional: bool = opcode & 7 == 2;
+            is_conditional = opcode & 7 == 2;
             if (is_conditional) {
                 condition_is_met = switch (opcode) {
                     0o302 => flags.zero == false,
@@ -1889,7 +1604,7 @@ fn exec_inst(self: *Cpu) void {
         .JR => {
             const offset: i8 = @bitCast(operands[0]);
             const address: u16 = self.pc +% @as(u16, @bitCast(@as(i16, @intCast(offset))));
-            const is_conditional: bool = opcode >> 3 & 7 != 3;
+            is_conditional = opcode >> 3 & 7 != 3;
             if (is_conditional) {
                 condition_is_met = switch (opcode) {
                     0o040 => flags.zero == false,
@@ -1907,15 +1622,15 @@ fn exec_inst(self: *Cpu) void {
         },
         .RETI => {
             const low_byte = self.bus.read(self.sp);
-            const high_byte = self.bus.read(self.sp +% 1);
+            const high_byte = self.bus.read(self.sp + 1);
             const return_addr = (@as(u16, high_byte) << 8) | low_byte;
 
-            self.sp +%= 2;
+            self.sp += 2;
             self.pc = return_addr;
             self.ime = true;
         },
         .RET => {
-            const is_conditional: bool = opcode & 7 == 0;
+            is_conditional = opcode & 7 == 0;
 
             if (is_conditional) {
                 condition_is_met = switch (opcode) {
@@ -1927,20 +1642,10 @@ fn exec_inst(self: *Cpu) void {
                 };
 
                 if (condition_is_met) {
-                    const low_byte = self.bus.read(self.sp);
-                    const high_byte = self.bus.read(self.sp +% 1);
-                    const return_addr = (@as(u16, high_byte) << 8) | low_byte;
-
-                    self.sp +%= 2;
-                    self.pc = return_addr;
+                    self.ret();
                 }
             } else {
-                const low_byte = self.bus.read(self.sp);
-                const high_byte = self.bus.read(self.sp +% 1);
-                const return_addr = (@as(u16, high_byte) << 8) | low_byte;
-
-                self.sp +%= 2;
-                self.pc = return_addr;
+                self.ret();
             }
         },
         .PUSH => {
@@ -1951,9 +1656,10 @@ fn exec_inst(self: *Cpu) void {
                 0o365 => self.registers.get_af(),
                 else => unreachable,
             };
-            self.bus.write(self.sp -% 1, @intCast(value >> 8));
-            self.bus.write(self.sp -% 2, @intCast(value & 0xFF));
-            self.sp -%= 2;
+            self.sp -%= 1;
+            self.bus.write(self.sp, @intCast(value >> 8));
+            self.sp -%= 1;
+            self.bus.write(self.sp, @intCast(value & 0xFF));
         },
         .POP => {
             const low_byte = self.bus.read(self.sp);
@@ -1964,16 +1670,18 @@ fn exec_inst(self: *Cpu) void {
                 0o301 => self.registers.set_bc(value),
                 0o321 => self.registers.set_de(value),
                 0o341 => self.registers.set_hl(value),
-                0o361 => self.registers.set_af(value),
+                0o361 => {
+                    const masked_value = value & 0xFFF0;
+                    self.registers.set_af(masked_value);
+
+                    flags.zero = (low_byte & 0o200) != 0;
+                    flags.subtract = (low_byte & 0o100) != 0;
+                    flags.half_carry = (low_byte & 0o040) != 0;
+                    flags.carry = (low_byte & 0o020) != 0;
+                },
                 else => unreachable,
             }
             self.sp +%= 2;
-            if (opcode == 0o361) {
-                flags.zero = (low_byte & (1 << 7)) != 0;
-                flags.subtract = (low_byte & (1 << 6)) != 0;
-                flags.half_carry = (low_byte & (1 << 5)) != 0;
-                flags.carry = (low_byte & (1 << 4)) != 0;
-            }
         },
         .LD => {
             switch (opcode) {
@@ -2135,17 +1843,7 @@ fn exec_inst(self: *Cpu) void {
             self.call(value);
         },
         .HALT => {
-            const ie = self.bus.read(0xFFFF);
-            const @"if" = self.bus.read(0xFF0F);
-            const pending = ie & @"if";
-
-            if (pending != 0) {
-                if (!self.ime) {
-                    self.halt_bug_triggered = true;
-                }
-            } else {
-                self.halted = true;
-            }
+            self.halted = true;
         },
         .INC => {
             switch (opcode) {
@@ -2212,7 +1910,7 @@ fn exec_inst(self: *Cpu) void {
                     flags.half_carry = (value & 0xF) == 0;
                 },
                 0o013 => self.registers.set_bc(self.registers.get_bc() -% 1),
-                0o023 => self.registers.set_de(self.registers.get_de() -% 1),
+                0o033 => self.registers.set_de(self.registers.get_de() -% 1),
                 0o053 => self.registers.set_hl(self.registers.get_hl() -% 1),
                 0o073 => self.sp -%= 1,
                 else => unreachable,
@@ -2534,52 +2232,64 @@ fn exec_inst(self: *Cpu) void {
     self.registers.set_flags(flags);
 
     var cycles: u8 = 0;
-    if (op.cycles.len > 1) { // Conditional op
+    if (is_conditional) {
         cycles = if (condition_is_met) op.cycles[0] else op.cycles[1];
     } else {
         cycles = op.cycles[0];
     }
     self.timer.run_cycles(cycles);
-    if (self.timer.is_timer_interrupt_requested()) {
-        self.set_timer_interrupt_request_bit();
-    }
 }
 
-/// Returns true if an interrupt has been served
-inline fn interrupt_handler(self: *Cpu) bool {
-    if (self.ime) {
-        const ie = self.bus.read(0xFFFF);
-        const @"if" = self.bus.read(0xFF0F);
-        const pending = ie & @"if";
+inline fn interrupt_handler(self: *Cpu) void {
+    const VBLANK_INTERRUPT_FLAG: u8 = 1 << 0;
+    const LCD_INTERRUPT_FLAG: u8 = 1 << 1;
+    const TIMER_INTERRUPT_FLAG: u8 = 1 << 2;
+    const SERIAL_INTERRUPT_FLAG: u8 = 1 << 3;
+    const JOYPAD_INTERRUPT_FLAG: u8 = 1 << 4;
+    const ie = self.bus.read(0xFFFF);
+    var @"if" = self.bus.read(0xFF0F);
+    const pending = ie & @"if" & 0x1F;
 
-        if (pending != 0) {
+    if (self.halted or (self.ime and pending != 0)) {
+        self.halted = false;
+
+        if (self.ime) {
             self.ime = false;
-            self.halted = false;
+            var jump_address: u16 = undefined;
 
-            inline for (0..5) |int_bit| {
-                if (pending & (@as(u8, 1) << int_bit) != 0) {
-                    const new_if = @"if" & ~(@as(u8, 1) << int_bit);
-                    self.bus.write(0xFF0F, new_if);
-                    const vector = 0x0040 + (@as(u16, int_bit) << 3);
-                    self.call(vector);
-                    self.fetch_inst();
-                    self.exec_inst();
-                    return true;
-                }
+            if (pending & VBLANK_INTERRUPT_FLAG != 0) {
+                jump_address = 0x40;
+                @"if" ^= VBLANK_INTERRUPT_FLAG;
+            } else if (pending & LCD_INTERRUPT_FLAG != 0) {
+                jump_address = 0x48;
+                @"if" ^= LCD_INTERRUPT_FLAG;
+            } else if (pending & TIMER_INTERRUPT_FLAG != 0) {
+                jump_address = 0x50;
+                @"if" ^= TIMER_INTERRUPT_FLAG;
+            } else if (pending & SERIAL_INTERRUPT_FLAG != 0) {
+                jump_address = 0x58;
+                @"if" ^= SERIAL_INTERRUPT_FLAG;
+            } else if (pending & JOYPAD_INTERRUPT_FLAG != 0) {
+                jump_address = 0x60;
+                @"if" ^= JOYPAD_INTERRUPT_FLAG;
             }
+            self.bus.write(0xFF0F, @"if");
+            self.call(jump_address);
+            self.timer.run_cycles(20);
         }
     }
-    return false;
 }
 
-fn check_halt(self: *Cpu) void {
-    if (self.halted) {
-        const ie = self.bus.read(0xFFFF);
-        const @"if" = self.bus.read(0xFF0F);
-        const pending = ie & @"if";
+pub fn step_debug(self: *Cpu, comptime manual: bool, comptime breakpoint: usize) !void {
+    const S = struct {
+        var i: usize = 0;
+    };
 
-        if (pending != 0) {
-            self.halted = false;
+    try self.step();
+    if (manual) {
+        S.i += 1;
+        if (S.i >= breakpoint) {
+            _ = try std.io.getStdIn().reader().readByte();
         }
     }
 }
@@ -2588,22 +2298,7 @@ pub fn step(self: *Cpu) !void {
     const prev_ei = self.ei_executed;
     self.ei_executed = false;
 
-    const ie = self.bus.read(0xFFFF);
-    const @"if" = self.bus.read(0xFF0F);
-    const pending = ie & @"if";
-
-    if (self.ime and pending != 0) {
-        self.halted = false;
-        if (self.interrupt_handler()) {
-            return;
-        }
-    }
-
-    if (self.halted) {
-        self.timer.run_cycles(4);
-        return;
-    }
-
+    self.interrupt_handler();
     self.fetch_inst();
     self.exec_inst();
 
@@ -2614,6 +2309,7 @@ pub fn step(self: *Cpu) !void {
 
 pub inline fn print(self: *Cpu) void {
     std.log.debug(
+        \\
         \\[!] Registers
         \\b  = {}
         \\c  = {}
@@ -2630,6 +2326,16 @@ pub inline fn print(self: *Cpu) void {
         \\pc = 0x{X:0>4} 
         \\sp = 0x{X:0>4} 
         \\
+        \\[!] Interrupts
+        \\ime = {}
+        \\halt = {}
+        \\ie = {b:0>8}
+        \\if = {b:0>8}
+        \\tima = {}
+        \\timac = {}
+        \\div = {}
+        \\divc = {}
+        \\
     , .{
         self.registers.get(.b),
         self.registers.get(.c),
@@ -2645,6 +2351,14 @@ pub inline fn print(self: *Cpu) void {
         self.registers.get_af(),
         self.pc,
         self.sp,
+        self.ime,
+        self.halted,
+        self.bus.read(0xFFFF),
+        self.bus.read(0xFF0F),
+        self.bus.read(0xFF05),
+        self.timer.tima_count,
+        self.bus.read(0xFF04),
+        self.timer.div_count,
     });
 }
 
@@ -2678,11 +2392,10 @@ pub fn init(bus: *Bus) Cpu {
                 0x00, 0x13, 0x00, 0xD8, 0x01, 0x4D, 0xB0, 0x01,
             },
         },
-        .cur_opcode = undefined,
-        .ime = false,
-        .halted = false,
-        .halt_bug_triggered = false,
+        .current_opcode = undefined,
+        .ime = true,
         .ei_executed = false,
+        .halted = false,
         .pc = 0x0100,
         .sp = 0xFFFE,
     };
