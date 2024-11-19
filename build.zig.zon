@@ -3,9 +3,9 @@
     .version = "0.0.0",
     .minimum_zig_version = "0.13.0",
     .dependencies = .{
-        .SDL = .{
-            .url = "git+https://github.com/allyourcodebase/SDL?ref=main#a9107e9ab042a2d6c76c73c0a485352ccb216ffc",
-            .hash = "1220fb0249c15493882350f135bc8b56c389a7f5131cc1b1a5208db472fa00e26b52",
+        .sdl = .{
+            .url = "git+https://github.com/bibo38/SDL.zig?ref=zig-0.13.0#fa141cd328454991b3e05a934d4409f97de96277",
+            .hash = "1220889ea7119e5c79536b2e25641c59710f4de61b1298ee19c9e27a8a4c72ebbede",
         },
     },
     .paths = .{

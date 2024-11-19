@@ -27,9 +27,6 @@ pub fn init(cartridge: *Cartridge) Bus {
 }
 
 pub inline fn read(self: *Bus, address: u16) u8 {
-    if (address == 0xFF44) {
-        return 0x90;
-    }
     return switch (address) {
         0x0000...0x7FFF,
         0xA000...0xBFFF,

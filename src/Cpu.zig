@@ -1340,7 +1340,7 @@ pub inline fn print(self: *Cpu) void {
     });
 }
 
-pub fn log(self: *const Cpu, file: *const std.fs.File) !void {
+pub fn log(self: *const Cpu, file: *std.fs.File) !void {
     try file.writer().print("A:{X:0>2} F:{X:0>2} B:{X:0>2} C:{X:0>2} D:{X:0>2} E:{X:0>2} H:{X:0>2} L:{X:0>2} SP:{X:0>4} PC:{X:0>4} PCMEM:{X:0>2},{X:0>2},{X:0>2},{X:0>2}\n", .{
         self.registers.get(.a),
         self.registers.get(.f),

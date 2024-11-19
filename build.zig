@@ -1,4 +1,5 @@
 const std = @import("std");
+const sdl = @import("sdl");
 
 fn getVersion(alloc: std.mem.Allocator) !struct { date: []const u8, commit: []const u8 } {
     const result = try std.process.Child.run(.{
@@ -28,11 +29,7 @@ pub fn build(b: *std.Build) void {
         return;
     };
 
-    const sdl_dep = b.dependency("SDL", .{
-        .target = target,
-        .optimize = optimize,
-    });
-
+    const sdk = sdl.init(b, null, null);
     const exe = b.addExecutable(.{
         .name = "zgbemu",
         .root_source_file = b.path("src/main.zig"),
@@ -45,8 +42,8 @@ pub fn build(b: *std.Build) void {
     options.addOption([]const u8, "version", b.fmt("{s}-{s}", .{ version.date, version.commit }));
     exe.root_module.addOptions("build_options", options);
 
-    exe.linkLibrary(sdl_dep.artifact("SDL2"));
-    exe.addIncludePath(sdl_dep.path("include"));
+    sdk.link(exe, .static, sdl.Library.SDL2);
+    exe.root_module.addImport("sdl2", sdk.getWrapperModule());
     exe.linkLibC();
     b.installArtifact(exe);
 }
