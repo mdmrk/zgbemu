@@ -12,8 +12,7 @@ io: [128]u8,
 ie: u8,
 
 pub fn init(cartridge: *Cartridge) Bus {
-    const DIV_ADDR: u16 = 0xFF04;
-    var bus: Bus = .{
+    var bus = Bus{
         .cartridge = cartridge,
         .wram = [_]u8{0} ** (8 * 1024),
         .hram = [_]u8{0} ** 127,
@@ -22,7 +21,12 @@ pub fn init(cartridge: *Cartridge) Bus {
         .io = [_]u8{0} ** 128,
         .ie = 0,
     };
+
+    const DIV_ADDR: u16 = 0xFF04;
     bus.io[DIV_ADDR - 0xFF00] = 0xAB;
+
+    bus.io[0x40] = 0x91;
+
     return bus;
 }
 

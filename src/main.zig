@@ -8,9 +8,14 @@ const sdl = @import("sdl2");
 const Ctx = struct {
     var running = true;
     const is_debug = std.options.log_level == .debug;
+    cpu: *Cpu,
+    ppu: *Ppu,
 };
 
-fn emu_run(cpu: *Cpu) !void {
+// Number of CPU cycles per frame (4.194304 MHz / ~60 FPS)
+const CYCLES_PER_FRAME = 70224;
+
+fn emu_run(cpu: *Cpu, ppu: *Ppu) !void {
     var log_file: std.fs.File = undefined;
     if (Ctx.is_debug) {
         const log_file_path = try std.fs.path.join(std.heap.page_allocator, &[_][]const u8{ "zig-out", "out.log" });
@@ -18,16 +23,35 @@ fn emu_run(cpu: *Cpu) !void {
     }
     defer if (Ctx.is_debug) log_file.close();
 
+    var cycles_this_frame: usize = 0;
+
     while (Ctx.running) {
-        std.log.debug("{s}", .{[_]u8{'='} ** 20});
         if (Ctx.is_debug) {
-            try cpu.log(&log_file);
-            cpu.print();
+            // std.log.debug("{s}", .{[_]u8{'='} ** 20});
+            // try cpu.log(&log_file);
+            // cpu.print();
             try cpu.step_debug(!true, 0);
         } else {
             try cpu.step();
         }
-        std.log.debug("{s}\n", .{[_]u8{'='} ** 20});
+
+        // Run PPU cycles to match CPU cycles
+        // Each CPU cycle = 4 PPU cycles
+        const cycles = 4;
+        var i: usize = 0;
+        while (i < cycles) : (i += 1) {
+            ppu.tick();
+        }
+
+        cycles_this_frame += cycles;
+
+        // If we've completed a frame's worth of cycles, update the screen
+        if (cycles_this_frame >= CYCLES_PER_FRAME) {
+            try ppu.render();
+            cycles_this_frame = 0;
+        }
+
+        // std.log.debug("{s}\n", .{[_]u8{'='} ** 20});
     }
 }
 
@@ -38,7 +62,6 @@ pub fn main() !void {
 
     try sdl.init(.{
         .video = true,
-        .audio = true,
         .events = true,
     });
     defer sdl.quit();
@@ -50,39 +73,42 @@ pub fn main() !void {
     const path = args.next() orelse return error.MissingRomPath;
     std.log.debug("filepath: {s}\n", .{path});
 
-    var cardtrige = Cartridge.init(alloc);
-    defer cardtrige.deinit();
-    try cardtrige.load(path);
-    try cardtrige.verify();
+    var cartridge = Cartridge.init(alloc);
+    defer cartridge.deinit();
+    try cartridge.load(path);
+    try cartridge.verify();
 
-    var bus = Bus.init(&cardtrige);
+    var bus = Bus.init(&cartridge);
     var ppu = try Ppu.init(&bus);
     defer ppu.deinit();
     var cpu = Cpu.init(&bus, &ppu);
 
-    const emu_thread = try std.Thread.spawn(.{}, emu_run, .{&cpu});
-    emu_thread.detach();
+    // Start emulator thread
+    const emu_thread = try std.Thread.spawn(.{}, emu_run, .{ &cpu, &ppu });
+    defer emu_thread.join();
+
+    // Main event and render loop
+    var frame_timer = try std.time.Timer.start();
+    const target_frame_time = std.time.ns_per_s / 60;
 
     while (Ctx.running) {
+        // Handle SDL events
         while (sdl.pollEvent()) |event| {
             switch (event) {
-                .quit => {
-                    Ctx.running = false;
-                },
+                .quit => Ctx.running = false,
                 else => {},
             }
         }
-        try ppu.render();
+
+        // Render if a frame is ready
+        if (ppu.frame_complete) {
+            try ppu.render();
+        }
+
+        // Frame timing
+        const elapsed = frame_timer.lap();
+        if (elapsed < target_frame_time) {
+            std.time.sleep(target_frame_time - elapsed);
+        }
     }
 }
-
-// Passing test roms
-// 01 - OK
-// 02 - NO
-// 03 - OK
-// 04 - NO
-// 05 - OK
-// 06 - OK
-// 07 - OK
-// 08 - OK
-// 09 - OK

@@ -481,25 +481,25 @@ fn exec_inst(self: *Cpu) void {
         self.pc += operants_size;
     }
 
-    std.log.debug(
-        \\
-        \\[!] Instruction
-        \\0x{X:0>2} 0o{o:0>3} {s}
-        \\size   = {}
-        \\cycles = {d}
-        \\operands u8  = 0x{X:0>2} {d}
-        \\operands u16 = 0x{X:0>4} {d}
-    , .{
-        opcode,
-        opcode,
-        @tagName(op.mnemonic),
-        op.bytes,
-        op.cycles,
-        operands,
-        operands,
-        two_u8_to_u16(operands[1], operands[0]),
-        two_u8_to_u16(operands[1], operands[0]),
-    });
+    //  std.log.debug(
+    //     \\
+    //     \\[!] Instruction
+    //     \\0x{X:0>2} 0o{o:0>3} {s}
+    //     \\size   = {}
+    //     \\cycles = {d}
+    //     \\operands u8  = 0x{X:0>2} {d}
+    //     \\operands u16 = 0x{X:0>4} {d}
+    // , .{
+    //     opcode,
+    //     opcode,
+    //     @tagName(op.mnemonic),
+    //     op.bytes,
+    //     op.cycles,
+    //     operands,
+    //     operands,
+    //     two_u8_to_u16(operands[1], operands[0]),
+    //     two_u8_to_u16(operands[1], operands[0]),
+    // });
 
     switch (op.mnemonic) {
         .CALL => {
