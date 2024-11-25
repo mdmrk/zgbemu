@@ -1,0 +1,92 @@
+name: Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+jobs:
+  build-info:
+    runs-on: ubuntu-latest
+    outputs:
+      date: ${{ steps.info.outputs.date }}
+      commit_hash: ${{ steps.info.outputs.commit_hash }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get build info
+        id: info
+        shell: bash
+        run: |
+          echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+          echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+  windows-x64:
+    needs: build-info
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.13.0
+      - name: Build
+        run: |
+          zig build -Dtarget=x86_64-windows -Doptimize=ReleaseFast
+        shell: bash
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zgbemu-windows-${{needs.build-info.outputs.date}}-${{needs.build-info.outputs.commit_hash}}
+          path: zig-out/bin/zgbemu.exe
+
+  macos-x64:
+    needs: build-info
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.13.0
+      - name: Build
+        run: |
+          zig build -Dtarget=x86_64-macos -Doptimize=ReleaseFast
+        shell: bash
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zgbemu-macos-${{needs.build-info.outputs.date}}-${{needs.build-info.outputs.commit_hash}}
+          path: zig-out/bin/zgbemu
+
+  linux-x64:
+    needs: build-info
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.13.0
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev \
+            libxext-dev \
+            libpulse-dev \
+            pkg-config
+      - name: Build
+        run: |
+          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig
+          zig build -Dtarget=x86_64-linux -Doptimize=ReleaseFast
+        shell: bash
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zgbemu-linux-${{needs.build-info.outputs.date}}-${{needs.build-info.outputs.commit_hash}}
+          path: zig-out/bin/zgbemu

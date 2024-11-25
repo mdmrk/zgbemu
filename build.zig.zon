@@ -1,0 +1,16 @@
+.{
+    .name = "zgbemu",
+    .version = "0.0.0",
+    .minimum_zig_version = "0.13.0",
+    .dependencies = .{
+        .sdl = .{
+            .url = "git+https://github.com/bibo38/SDL.zig?ref=zig-0.13.0#fa141cd328454991b3e05a934d4409f97de96277",
+            .hash = "1220889ea7119e5c79536b2e25641c59710f4de61b1298ee19c9e27a8a4c72ebbede",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
