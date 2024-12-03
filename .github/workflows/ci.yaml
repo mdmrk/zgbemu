@@ -29,6 +29,12 @@ jobs:
     needs: build-info
     runs-on: windows-latest
     steps:
+      - uses: libsdl-org/setup-sdl@main
+        id: sdl
+        with:
+          install-linux-dependencies: true
+          version: 2-latest
+          version-sdl-image: 2-latest
       - uses: actions/checkout@v4
       - name: Setup Zig
         uses: mlugg/setup-zig@v1
@@ -48,6 +54,12 @@ jobs:
     needs: build-info
     runs-on: macos-latest
     steps:
+      - uses: libsdl-org/setup-sdl@main
+        id: sdl
+        with:
+          install-linux-dependencies: true
+          version: 2-latest
+          version-sdl-image: 2-latest
       - uses: actions/checkout@v4
       - name: Setup Zig
         uses: mlugg/setup-zig@v1

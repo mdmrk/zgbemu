@@ -42,7 +42,7 @@ pub fn build(b: *std.Build) void {
     options.addOption([]const u8, "version", b.fmt("{s}-{s}", .{ version.date, version.commit }));
     exe.root_module.addOptions("build_options", options);
 
-    sdk.link(exe, .static, sdl.Library.SDL2);
+    sdk.link(exe, .dynamic, sdl.Library.SDL2);
     exe.root_module.addImport("sdl2", sdk.getWrapperModule());
     exe.linkLibC();
     b.installArtifact(exe);
